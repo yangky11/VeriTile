@@ -9,6 +9,7 @@ open Structural Guarded
 /-- Equality of literal spellings before they enter the numerical backend. -/
 @[spec_rule] theorem scientific_one : (1.0 : ℝ) = 1 := by norm_num
 
+set_option backward.isDefEq.respectTransparency false in
 @[spec_rule] theorem contextual_div_broadcast_mul_rcp {α : Type} [Inhabited α]
     (R : ScalarArithmetic.Rules) (M : Algebra α) (D : Domain α)
     (hM : Models R.assumptions M D) (s : State α) (before after : List ComputeStmt)
@@ -26,7 +27,7 @@ open Structural Guarded
   cases hp : run (engine M) before s with
   | none => rfl
   | some t =>
-    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp]
+    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp_alg]
     have ediv : Structural.evalOp (engine M) (some .fp32) (.div .real bc a b) t =
         (Structural.evalOp (engine M) (some .fp32) a t >>= fun va =>
           Structural.evalOp (engine M) (some .fp32) b t >>= fun vb =>
@@ -78,6 +79,7 @@ def reverseBroadcast : Broadcast sa sb shape → Broadcast sb sa shape
     (reverseBroadcast bc).rightIndex i = bc.leftIndex i := by
   induction bc <;> simp_all [reverseBroadcast]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Lift the admitted mul_commute atom through arbitrary broadcasting. Both
 operand tiles are checked after the actual common prefix; either evaluation
 failure remains a failure in the other operand order. -/
@@ -94,7 +96,7 @@ failure remains a failure in the other operand order. -/
   cases hp : run (engine M) before s with
   | none => rfl
   | some t =>
-    simp only [Option.bind_some,run,step,Structural.evalExpr,evalComputeOp]
+    simp only [Option.bind_some,run,step,Structural.evalExpr,evalComputeOp_alg]
     have he : Structural.evalOp (engine M) (some .fp32) (.mul .real bc a b) t =
         Structural.evalOp (engine M) (some .fp32) (.mul .real (reverseBroadcast bc) b a) t := by
       change ((Structural.evalOp (engine M) (some .fp32) a t).bind fun va =>
@@ -113,7 +115,6 @@ failure remains a failure in the other operand order. -/
       simp only [bop,reverseBroadcast_left,reverseBroadcast_right]
       exact ScalarArithmetic.mul_comm R M D hM t _ _ (hva (bc.leftIndex i)) (hvb (bc.rightIndex i))
     erw [he]
-    rfl
 /-- Lift the admitted mul_commute atom through arbitrary broadcasting. Both
 operand tiles are checked after the actual common prefix; either evaluation
 failure remains a failure in the other operand order. -/

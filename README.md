@@ -168,6 +168,33 @@ See the [worked-example index](bench/examples/README.md) for the shared-source d
 Elementwise vector add against the `addSpec xs ys i = xs i + ys i` math
 spec — see [`bench/examples/VectorAdd/Correct.lean`](bench/examples/VectorAdd/Correct.lean).
 
+## Pasted Python/Triton source
+
+[`CallSignature`](VeriTile/Triton/DSL/CallSignature.lean) supplies pointer dtypes,
+scalar kinds and constexpr names to `with_triton_signature signature in triton { ... }`.
+The source body stays unchanged; `ComputeKernel.withScalarArguments` separately
+binds the launch's runtime scalar arguments. Supported helper imports can be
+resolved explicitly, for example `helperAliases := [("libdevice.rsqrt", .rsqrt)]`.
+Aliases identify caller-resolved imports, rather than permitting arbitrary Python calls.
+
+The optional `literalPolicy := .pythonFloat32` interprets finite decimal literals
+through Python binary64 and then binary32, retaining the result as an exact rational
+in the real interpretation. The default remains `.exactDecimal`. The float32 policy
+rejects nonfinite literals, unsupported non-float32 floating conversions, and bare
+integer literals that would require inexact float32 promotion. See the executable
+[literal and unchanged-source regressions](tests/lean/RawSourceIntegration.lean).
+This policy interprets individual literals. Source adapters must separately reject
+or model host scalar arithmetic, including aliases and constexpr expressions,
+before tensor promotion; rounding literals alone does not model Python evaluation.
+
+[`Source.Proof`](VeriTile/Triton/Source/Proof.lean) provides
+`triton_source [sourceDefinitions]` to normalize the existing source projection,
+dtype erasure and executor. Its memory-observation lemma and the masked scatter
+lemmas in [`Source.Scatter`](VeriTile/Triton/Source/Scatter.lean) support readback
+proofs without introducing another semantics. These tools prove statements about
+the selected real interpretation; IEEE execution and native compilation require
+separate evidence.
+
 ## Floating-Point Equivalence Example
 
 Vector addition with swapped operands — see
@@ -258,7 +285,7 @@ verso/                     Slide deck / overview
 
 ## Environment
 
-- Lean 4 (`v4.29.0`) + Mathlib
+- Lean 4 (`v4.35.0`) + Mathlib
 - Optional, for agent-assisted proof automation: [Claude Code CLI](https://docs.claude.com/en/docs/claude-code) +
   [`lean4-skills`](https://github.com/lean4-skills/lean4-skills)
 - For artifact/bench verification and proof automation: Python 3 and the official comparator, lean4export,

@@ -39,6 +39,7 @@ theorem scalar_models {α : Type} [Inhabited α] (R : Rules)
     (M : Algebra α) (D : Domain α) (hM : Models R.assumptions M D) :
     Models R.scalar.assumptions M D := hM
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The original typed instructions, finite guards and FP32 default precision
 are certified by executing them in the fixed software profile. The numeric
 step reuses the shared all-word multiplication theorem. -/

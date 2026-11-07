@@ -83,25 +83,11 @@ theorem partialLSE_full_zero_self_eq_stableLSE {n : Nat}
     ext i
     simp [validLanes, Nat.lt_succ_iff.mp i.isLt]
   have h_scaled :
-      (fun x : Fin (n+1) =>
-        if HAS_SCALE = true then
-          if (x : Nat) ≤ n then xs x * scale else 0
-        else
-          if (x : Nat) ≤ n then xs x else 0)
-      =
-      (fun x : Fin (n+1) =>
-        if HAS_SCALE = true then xs x * scale else xs x) := by
-    funext x
-    have hx : (x : Nat) ≤ n := Nat.lt_succ_iff.mp x.isLt
-    by_cases h : HAS_SCALE = true <;> simp [h, hx]
-  unfold partialLSE_full stableLSE stableLSEWithShift blockMax
-  simp [h_valid, scaledLane_full, h_scaled]
-  congr 1
-  apply Finset.sum_congr rfl
-  intro x _hx
-  congr 1
-  have hx : (x : Nat) ≤ n := Nat.lt_succ_iff.mp x.isLt
-  by_cases h : HAS_SCALE = true <;> simp [h, hx]
+      scaledLane_full (n := n) xs 0 HAS_SCALE scale =
+        (fun i : Fin (n+1) => if HAS_SCALE then xs i * scale else xs i) := by
+    funext i
+    simp [scaledLane_full, Nat.lt_succ_iff.mp i.isLt]
+  simp [partialLSE_full, stableLSE, stableLSEWithShift, blockMax, h_valid, h_scaled]
 
 /-! ## Tiled aggregation math -/
 

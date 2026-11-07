@@ -8,6 +8,9 @@ import VeriTile.Examples.FlashAttention1.Backward
 import VeriTile.Examples.FlashAttention1.ScoreVariants.Math
 import VeriTile.Meta.Specification
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton

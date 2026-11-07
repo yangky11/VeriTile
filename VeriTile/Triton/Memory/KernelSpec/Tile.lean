@@ -1469,10 +1469,13 @@ private def toU (io : ValueIndexTileKernelIO) : UKernelIO where
   obuf := fun o => match o with
     | ⟨0, _⟩ => io.outVal
     | _ => (io.outIdx : RegionName)
-  obuf_mem := fun o => by
+  obuf_mem := fun ⟨o, h⟩ => by
     match o with
-    | ⟨0, _⟩ => simp
-    | ⟨1, _⟩ => simp
+    | 0 =>
+        change io.outVal ∈ [io.inp, io.outVal, (io.outIdx : RegionName)]
+        simp
+    | 1 => simp
+    | n + 2 => omega
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun _ _ p₀ _ _ j =>

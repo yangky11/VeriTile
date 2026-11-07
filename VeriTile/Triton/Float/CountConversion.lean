@@ -49,26 +49,30 @@ def rhs (a : Atom) : GuardedFragment := ⟨[], rhsCode a, .real, none⟩
 
 set_option maxHeartbeats 1600000
 set_option maxRecDepth 4000
+set_option backward.isDefEq.respectTransparency false in
 private theorem run_zero_left {α : Type} [Inhabited α] (M : Algebra α) (s : State α) :
     run M (lhsCode .zero) s =
       some (s.setReg "out" .real [] (fun _ => M.fromNat (some .fp32) 0)) := by
-  simp [lhsCode, fragment, run, step, evalExpr, evalComputeOp, evalOp_unfold]
+  simp [lhsCode, fragment, run, step, evalExpr, evalComputeOp_alg, evalOp_unfold]
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem run_zero_right {α : Type} [Inhabited α] (M : Algebra α) (s : State α) :
     run M (rhsCode .zero) s =
       some (s.setReg "out" .real [] (fun _ => M.literal (some .fp32) .real 0)) := by
-  simp [rhsCode, fragment, run, step, evalExpr, evalComputeOp, evalOp_unfold]
+  simp [rhsCode, fragment, run, step, evalExpr, evalComputeOp_alg, evalOp_unfold]
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem run_successor_left {α : Type} [Inhabited α] (M : Algebra α) (s : State α) :
     run M (lhsCode .successor) s =
       (s.regs .nat [] "i").map (fun v => s.setReg "out" .real []
         (fun _ => if v PUnit.unit < limit then M.fromNat (some .fp32) (v PUnit.unit + 1)
           else M.literal (some .fp32) .real 0)) := by
   cases h : s.regs .nat [] "i" <;>
-    simp [lhsCode, fragment, bounded, index, run, step, evalExpr, evalComputeOp,
+    simp [lhsCode, fragment, bounded, index, run, step, evalExpr, evalComputeOp_alg,
       evalOp_unfold, numeric, numericLt, natLt, bop, h]
   all_goals rfl
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem run_successor_right {α : Type} [Inhabited α] (M : Algebra α) (s : State α) :
     run M (rhsCode .successor) s =
       (s.regs .nat [] "i").map (fun v => s.setReg "out" .real []
@@ -76,7 +80,7 @@ private theorem run_successor_right {α : Type} [Inhabited α] (M : Algebra α) 
           (M.fromNat (some .fp32) (v PUnit.unit)) (M.literal (some .fp32) .real 1)
           else M.literal (some .fp32) .real 0)) := by
   cases h : s.regs .nat [] "i" <;>
-    simp [rhsCode, fragment, bounded, index, plus, run, step, evalExpr, evalComputeOp,
+    simp [rhsCode, fragment, bounded, index, plus, run, step, evalExpr, evalComputeOp_alg,
       evalOp_unfold, numeric, numericLt, natLt, bop, h]
   all_goals rfl
 

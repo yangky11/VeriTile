@@ -148,7 +148,8 @@ def withGridIndex {g : Grid} (s : BlockState) (idx : GridIndex g) : BlockState :
 @[simp] theorem withGridIndex_pid {g : Grid}
     (s : BlockState) (idx : GridIndex g) (h : 0 < g.rank) :
     (s.withGridIndex idx).pid = (idx ⟨0, h⟩).val := by
-  simpa using GridIndex.toPids_in_rank idx ⟨0, h⟩
+  change idx.toPids 0 = (idx ⟨0, h⟩).val
+  exact GridIndex.toPids_in_rank idx ⟨0, h⟩
 
 @[simp] theorem withGridIndex_numPids_in_rank {g : Grid}
     (s : BlockState) (idx : GridIndex g) {axis : Nat} (h : axis < g.rank) :

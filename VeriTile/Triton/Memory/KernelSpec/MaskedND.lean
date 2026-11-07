@@ -957,7 +957,12 @@ private def toU (io : Masked2DKernelIO₂ₓ₂) : UKernelIO where
   obuf := fun o => match o with
     | ⟨0, _⟩ => io.out1
     | _ => io.out2
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.in1, io.in2, io.out1, io.out2]
+      simp
+    · change io.out2 ∈ [io.in1, io.in2, io.out1, io.out2]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i _ p₀ p₁ _ => match i with
@@ -1399,7 +1404,12 @@ private def toU (io : Masked3DKernelIO₂ₓ₂) : UKernelIO where
   obuf := fun o => match o with
     | ⟨0, _⟩ => io.out1
     | _ => io.out2
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.in1, io.in2, io.out1, io.out2]
+      simp
+    · change io.out2 ∈ [io.in1, io.in2, io.out1, io.out2]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i _ p₀ p₁ p₂ => match i with
@@ -1859,7 +1869,14 @@ private def toU (io : Masked2DKernelIO₃ₓ₃) : UKernelIO where
     | ⟨0, _⟩ => io.out1
     | ⟨1, _⟩ => io.out2
     | _ => io.out3
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.in1, io.in2, io.in3, io.out1, io.out2, io.out3]
+      simp
+    · change io.out2 ∈ [io.in1, io.in2, io.in3, io.out1, io.out2, io.out3]
+      simp
+    · change io.out3 ∈ [io.in1, io.in2, io.in3, io.out1, io.out2, io.out3]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i _ p₀ p₁ _ => match i with

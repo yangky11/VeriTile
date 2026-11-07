@@ -33,7 +33,7 @@ theorem widenBits_decode_finite (x : Value .bf16) (s : Bool) (m : Rat)
     have he' : (x.exponent : Int) - 127 - 23 = ((x.exponent : Int) - 127 - 7) - 16 := by omega
     rw [he']
     norm_num only [Nat.reducePow]
-    simpa only [Nat.cast_mul, Nat.cast_ofNat, Int.cast_natCast, Int.cast_mul,
+    simpa only [Nat.cast_mul, Nat.cast_ofNat, Int.cast_natCast, Int.cast_mul, Int.cast_ofNat,
       Rat.ofInt_eq_cast] using scaled_pow2 (128 + x.fraction) ((x.exponent : Int) - 127 - 7)
 
 end VeriTile.Triton.FP.CastExact

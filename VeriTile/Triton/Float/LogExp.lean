@@ -239,6 +239,7 @@ def value (backend : Backend) {α : Type} (M : Algebra α) (lt le : α → α �
   if simplify then a else fallback
 
 set_option maxHeartbeats 1600000 in
+set_option backward.isDefEq.respectTransparency false in
 /-- Instantiate the admitted scalar rule only after executing its comparisons
 and both masked branches. Unsupported comparisons cannot discharge this law. -/
 theorem apply_log_exp_cancel (backend : Backend) {α : Type} [Inhabited α] (R : Rules)
@@ -256,7 +257,7 @@ theorem apply_log_exp_cancel (backend : Backend) {α : Type} [Inhabited α] (R :
     exact ⟨fun _ => a, by simp [t], ha⟩
   have h := hM _ _ (derive R (.log_exp_cancel backend) selected) t hg hg
   cases backend <;> simp only [Atom.lhs, Atom.rhs, assignOutput, run, step, evalExpr,
-    evalComputeOp, expression, Backend.log, Backend.exp, evalOp_unfold, useIdentity, absolute, input,
+    evalComputeOp_alg, expression, Backend.log, Backend.exp, evalOp_unfold, useIdentity, absolute, input,
     ComputeDType.eraseDType, fragmentAlgebra, numeric, numericLt, numericLe, hlt, hle,
     State.setReg_same, t] at h
   all_goals
@@ -277,6 +278,7 @@ def splitProductValue (backend : Backend) {α : Type} (M : Algebra α) (le : α 
   if keep then direct else split
 
 set_option maxHeartbeats 1600000 in
+set_option backward.isDefEq.respectTransparency false in
 /-- Apply the selected scalar relation to actual positive finite operands.
 The conclusion keeps the product-dependent branch; unconditional splitting
 does not follow. Successful fp32 comparisons are required explicitly. -/
@@ -300,7 +302,7 @@ theorem apply_log_mul_split (backend : Backend) {α : Type} [Inhabited α] (R : 
     · exact ⟨fun _ => b, by simp [t, State.setReg], hpb⟩
   have h := hM _ _ (derive R (.log_mul_split backend) selected) t hg hg
   cases backend <;> simp only [Atom.lhs, Atom.rhs, assignOutput, run, step, evalExpr,
-    evalComputeOp, splitProduct, Backend.log, evalOp_unfold, keepProduct, input, secondInput,
+    evalComputeOp_alg, splitProduct, Backend.log, evalOp_unfold, keepProduct, input, secondInput,
     ComputeDType.eraseDType, fragmentAlgebra, numeric, numericLe, hle, t] at h
   all_goals
     simp [State.setReg, bop, splitProductValue, Backend.logOp] at h ⊢

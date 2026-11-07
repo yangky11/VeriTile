@@ -17,6 +17,9 @@ import VeriTile.Triton.Math.Softmax
 import VeriTile.Triton.Launch.Grid
 import VeriTile.Meta.Specification
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -843,12 +846,14 @@ theorem fa2BackwardAtomicDQTwoBlockPartitionKernel_statefulTrace_blockContributi
     exact FA1Backward.fa1BackwardAtomicDQPreAtomic_dQPart
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
       Q K V dO LSE scale block s hPid hQ hK hV hdO hLSE
-  simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel, sPre] using
+  simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel,
+    FA1Backward.fa1BackwardAtomicDQKernel, sPre] using
     FA1Backward.fa1BackwardAtomicDQKernel_statefulTrace_blockContribution
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
       scale tid s sPre final Q K V dO LSE block
       hPre hPtrs hVal (by
-        simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel, sPre] using hTailStep)
+        simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel,
+          FA1Backward.fa1BackwardAtomicDQKernel, sPre] using hTailStep)
 
 /-- Atomic `dQ` contribution extraction for one program of the FA-2-specific
 two-block backward partition kernel from a full `exec` fact. -/
@@ -895,7 +900,8 @@ specification fa2BackwardAtomicDQTwoBlockPartitionKernel_statefulTrace_blockCont
           qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
           M D Bk scale).toAlgKernel.body.take 29) s =
         some sPre := by
-    simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel, sPre] using
+    simpa [fa2BackwardAtomicDQTwoBlockPartitionKernel,
+      FA1Backward.fa1BackwardAtomicDQKernel, sPre] using
       FA1Backward.fa1BackwardAtomicDQPreAtomic_step
         qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
         Q K V dO LSE scale block s hPid hQ hK hV hdO hLSE
@@ -1137,12 +1143,14 @@ specification fa2BackwardAtomicDQCausalTwoBlockPartitionKernel_statefulTrace_blo
     exact FA1Backward.fa1BackwardAtomicDQCausalPreAtomic_dQPart
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
       Q K V dO LSE scale block s hPid hQ hK hV hdO hLSE
-  simpa [fa2BackwardAtomicDQCausalTwoBlockPartitionKernel, sPre] using
+  simpa [fa2BackwardAtomicDQCausalTwoBlockPartitionKernel,
+    FA1Backward.fa1BackwardAtomicDQCausalKernel, sPre] using
     FA1Backward.fa1BackwardAtomicDQCausalKernel_statefulTrace_blockContribution
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
       scale tid s sPre final Q K V dO LSE block
       hPre hPtrs hVal (by
-        simpa [fa2BackwardAtomicDQCausalTwoBlockPartitionKernel, sPre] using hTailStep)
+        simpa [fa2BackwardAtomicDQCausalTwoBlockPartitionKernel,
+          FA1Backward.fa1BackwardAtomicDQCausalKernel, sPre] using hTailStep)
 
 /-- Full launcher-facing correctness for the FA-2-specific causal two-block
 backward work-partition kernel. -/
@@ -1306,7 +1314,8 @@ specification fa2BackwardAtomicDQTwoBlockPartitionKernel_gridLaunched_backward_c
           StreamingAccumulator.blockIndex Bk 2 block.val
             (by have := block.isLt; omega) idx.1,
           idx.2.1, PUnit.unit))) := by
-  simpa [fa2BackwardReal4D, FA1Backward.attentionBackwardReal4D, sliceBH,
+  simpa [fa2BackwardReal4D, fa2BackwardReal, FA1Backward.attentionBackwardReal4D,
+    FA1Backward.attentionBackwardReal, sliceBH,
     FA1Backward.sliceBHLSE] using
     fa2BackwardAtomicDQTwoBlockPartitionKernel_gridLaunched_backward_correct
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
@@ -1397,7 +1406,8 @@ specification fa2BackwardAtomicDQCausalTwoBlockPartitionKernel_gridLaunched_back
           StreamingAccumulator.blockIndex Bk 2 block.val
             (by have := block.isLt; omega) idx.1,
           idx.2.1, PUnit.unit))) := by
-  simpa [fa2BackwardCausalReal4D, FA1Backward.attentionBackwardReal4DCausal,
+  simpa [fa2BackwardCausalReal4D, fa2BackwardCausalReal, FA1Backward.attentionBackwardReal4DCausal,
+    FA1Backward.attentionBackwardRealCausal,
     FA1Backward.attentionBackwardReal4DMasked, sliceBH, FA1Backward.sliceBHLSE] using
     fa2BackwardAtomicDQCausalTwoBlockPartitionKernel_gridLaunched_backward_correct
       qReg kReg vReg dOReg lseReg dQReg dKReg dVReg
@@ -1616,89 +1626,11 @@ specification fa2ScalarScoreMaxKernel_correct_view
         Tile.reduceMax, Tile.reduceMaxDrop, TileShape.axisDim,
         TileShape.eraseAxis, TileShape.insertAxisIndex, tileMax,
         BlockState.writeMemTyped_real, hBk] at hExec ⊢
-  set stScores : BlockState :=
-    (((s.setReg "pid" TileDType.nat [] (Tile.scalar (s.pids 0))).setReg
-        "offs" TileDType.nat [n + 1]
-        (Tile.bop NumericDType.nat.add Broadcast.scalarL
-          (Tile.bop NumericDType.nat.mul Broadcast.nil
-            (Tile.scalar (s.pids 0)) (Tile.scalar (n + 1)))
-          (Tile.vec fun i => i.val))).setReg
-      "scores" TileDType.real [n + 1]
-      { data := fun i =>
-          some (s.readMem scoreReg
-            (NumericDType.nat.add
-              (NumericDType.nat.mul (s.pids 0) (n + 1)) i.1)) }) with hStScores
-  have hMaxEval :
-      evalOp (Op.reduceMax 0 Bool.false (Op.ref TileDType.real [n + 1] "scores")) stScores =
-        some (Tile.scalar
-          ((Finset.univ : Finset (Fin (n + 1))).sup
-            (fun j : Fin (n + 1) =>
-              ((s.readMem scoreReg (s.pids 0 * (n + 1) + j.val) : ℝ) : WithBot ℝ)))) := by
-    subst stScores
-    rw [VeriTile.Triton.evalOp_reduceMax]
-    unfold Tile.reduceMax
-    simp [Tile.reduceMaxDrop, NumericDType.add, NumericDType.mul]
-    split
-    · congr 2
-      funext idx
-      change (((Finset.univ : Finset (Fin (n + 1))).sup'
-          (by exact ⟨⟨0, hBk⟩, Finset.mem_univ _⟩)
-          (fun j : Fin (n + 1) =>
-            s.readMem scoreReg (s.pids 0 * (n + 1) + j.val)) : ℝ) : WithBot ℝ) =
-        (Finset.univ : Finset (Fin (n + 1))).sup
-          (fun j : Fin (n + 1) =>
-            ((s.readMem scoreReg (s.pids 0 * (n + 1) + j.val) : ℝ) : WithBot ℝ))
-      rw [← WithBot.sup'_coe]
-      rw [Finset.sup'_eq_sup]
-    · have : 0 < TileShape.axisDim [n + 1] (0 : Fin [n + 1].length) := by
-        change 0 < n + 1
-        exact hBk
-      contradiction
   intro _
   simp [ComputeCorrect.WriteMap.scalar]
   unfold InputLoadedAt at hScores
-  have hExecReduced :
-      (match
-          (some (Tile.scalar
-            ((Finset.univ : Finset (Fin (n + 1))).sup
-              (fun j : Fin (n + 1) =>
-                ((s.readMem scoreReg (s.pids 0 * (n + 1) + j.val) : ℝ) : WithBot ℝ))))).bind
-            fun v => some (stScores.setReg "m" TileDType.real [] v) with
-        | some s' =>
-          match
-            (s'.regs TileDType.real [] "m").bind fun values =>
-              (s'.regs TileDType.nat [] "pid").bind fun a =>
-                some (s'.writeMem mReg (a.data PUnit.unit)
-                  (WithBot.unbotD 0 (values.data PUnit.unit))) with
-          | some s' => some s'
-          | none => none
-        | none => none) = some s' := by
-    rw [← hMaxEval]
-    exact hExec
-  simp [hStScores, BlockState.writeMem_readMem, Finset.sup'_eq_sup,
-    WithBot.unbotD_sup'_some] at hExecReduced
   subst s'
-  simp [BlockState.writeMem_readMem]
-  change WithBot.unbotD (0 : ℝ)
-      ((Finset.univ : Finset (Fin (n + 1))).sup
-        (fun j : Fin (n + 1) =>
-          ((s.readMem scoreReg (s.pids 0 * (n + 1) + j.val) : ℝ) : WithBot ℝ))) =
-    TiledLogSumExp.blockMax hBk scores
-  rw [← Finset.sup'_eq_sup
-    (H := (⟨⟨0, hBk⟩, Finset.mem_univ _⟩ :
-      (Finset.univ : Finset (Fin (n + 1))).Nonempty))]
-  rw [WithBot.sup'_coe
-    (s := (Finset.univ : Finset (Fin (n + 1))))
-    (h := (⟨⟨0, hBk⟩, Finset.mem_univ _⟩ :
-      (Finset.univ : Finset (Fin (n + 1))).Nonempty))
-    (f := fun j : Fin (n + 1) =>
-      s.readMem scoreReg (s.pids 0 * (n + 1) + j.val))]
-  change (Finset.univ.sup'
-      (⟨⟨0, hBk⟩, Finset.mem_univ _⟩ :
-        (Finset.univ : Finset (Fin (n + 1))).Nonempty)
-      (fun j : Fin (n + 1) =>
-        s.readMem scoreReg (s.pids 0 * (n + 1) + j.val))) =
-    TiledLogSumExp.blockMax hBk scores
+  simp only [BlockState.writeMem_readMem]
   simpa [NumericDType.add, NumericDType.mul, TiledLogSumExp.blockMax, BlockState.pid] using
     congrArg
       (fun f : Fin (n + 1) → ℝ =>
@@ -2013,10 +1945,6 @@ specification fa2ScalarFragmentSummaryKernel_correct_view
       TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
       NumericDType.sub, WithBot.realExp, fa2ScalarFragmentDenom,
       BlockState.writeMemTyped_real] at hExec ⊢
-    repeat unfold evalOp at hExec
-    simp [Tile.bop, Tile.uop, Tile.reduceSum, Tile.reduceSumDrop,
-      TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
-      NumericDType.sub, WithBot.realExp] at hExec
     subst s'
     simp [hOutNe, TileShape.insertAxisIndex]
     refine Finset.sum_congr rfl ?_
@@ -2027,10 +1955,6 @@ specification fa2ScalarFragmentSummaryKernel_correct_view
       TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
       NumericDType.sub, WithBot.realExp, fa2ScalarFragmentNumer,
       BlockState.writeMemTyped_real] at hExec ⊢
-    repeat unfold evalOp at hExec
-    simp [Tile.bop, Tile.uop, Tile.reduceSum, Tile.reduceSumDrop,
-      TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
-      NumericDType.sub, WithBot.realExp] at hExec
     subst s'
     simp [TileShape.insertAxisIndex]
     refine Finset.sum_congr rfl ?_
@@ -2135,9 +2059,6 @@ specification fa2ScoreFragmentKernel_correct_view
   simp [exec, fa2ScoreFragmentKernel, stepStmts, stepStmt, evalOp, Option.bind,
     Tile.bop, Tile.dot, Tile.transpose, NumericDType.add, NumericDType.mul,
     BlockState.writeMemTyped_real, fa2ScoreFragmentSpec] at hExec ⊢
-  repeat unfold evalOp at hExec
-  simp [Option.bind, Tile.bop, Tile.dot, Tile.transpose, NumericDType.add,
-    NumericDType.mul, BlockState.writeMemTyped_real, fa2ScoreFragmentSpec] at hExec
   subst s'
   intro i j
   simp [TileShape.dropInsertedIndex] at *
@@ -2253,7 +2174,7 @@ specification fa2ScoreFragmentKernel_scaledScore_row_loaded
       (s.pid * M + row.val) * Bk + j.val =
         s.pid * (M * Bk) + row.val * Bk + j.val := by
     ring
-  simpa [InputLoadedAt, BlockState.withPids, hAddr] using hOut
+  simpa [InputLoadedAt, BlockState.withPids, BlockState.readMem, hAddr] using hOut
 
 /-- State-parametric row handoff from the score-fragment producer to a later
 consumer state.  If `consumer` has the scalar fused-forward program id
@@ -2292,7 +2213,7 @@ specification fa2ScoreFragmentKernel_scaledScore_row_loaded_of_agrees
   refine InputLoadedAt.transfer ?_ ?_ hLoaded
   · simp [hPid]
   · intro offset
-    simpa [BlockState.withPids] using hScoreMem offset
+    simpa [BlockState.withPids, BlockState.readMem] using hScoreMem offset
 
 /-- Two-block score-producer handoff for the scalar fused-forward consumer.
 This packages the left/right score-row transfer obligations into exactly the
@@ -2439,12 +2360,6 @@ specification fa2ScalarTwoBlockForwardKernel_correct_view
     WithBot.realExp, WithBot.realDiv, fa2ScalarFragmentDenom,
     fa2ScalarFragmentNumer, fa2ScalarTwoBlockForwardTileSpec,
     BlockState.writeMemTyped_real] at hRead ⊢
-  repeat unfold evalOp at hRead
-  simp [Tile.bop, Tile.uop, Tile.reduceSum, Tile.reduceSumDrop,
-    TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
-    NumericDType.sub, NumericDType.div, WithBot.realExp, WithBot.realDiv,
-    fa2ScalarFragmentDenom, fa2ScalarFragmentNumer,
-    fa2ScalarTwoBlockForwardTileSpec, BlockState.writeMemTyped_real] at hRead
   subst s'
   intro _
   simp [ComputeCorrect.WriteMap.scalar, TileShape.insertAxisIndex]
@@ -3002,7 +2917,8 @@ specification fa2ScalarTwoBlockForwardKernel_attentionReal4D_view
     scale (i, d, PUnit.unit) mLeft mRight mMerged
     hScoresLeft hValuesLeft hScoresRight hValuesRight
     hmLeft hmRight hmMerged hlFree
-  simpa [attentionReal4D_slice] using hview
+  unfold attentionReal4D
+  exact hview
 
 /-- Grid-facing wrapper for the fused scalar two-block FA-2 forward slice.
 Every program instance may correspond to a different 4D output coordinate; the
@@ -3088,11 +3004,6 @@ specification fa2ScalarTwoBlockForwardKernel_forAll_attentionReal4D_view
             sIdx = some s' := by
     simp [exec, fa2ScalarTwoBlockForwardKernel, stepStmts, stepStmt, evalOp,
       Tile.bop, Tile.uop, Tile.reduceSum, Tile.reduceSumDrop,
-      TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
-      NumericDType.sub, NumericDType.div, WithBot.realExp, WithBot.realDiv,
-      BlockState.writeMemTyped_real]
-    repeat unfold evalOp
-    simp [Tile.bop, Tile.uop, Tile.reduceSum, Tile.reduceSumDrop,
       TileShape.axisDim, TileShape.eraseAxis, NumericDType.add, NumericDType.mul,
       NumericDType.sub, NumericDType.div, WithBot.realExp, WithBot.realDiv,
       BlockState.writeMemTyped_real]
@@ -3292,7 +3203,7 @@ specification fa2_forward_correct_4D_views
           (⟨s.pids 2, hPidB⟩, ⟨s.pids 1, hPidH⟩,
            ⟨s.pids 0 * M + idx.1.val, by have := idx.1.isLt; omega⟩,
            idx.2.1, PUnit.unit)) := by
-  simpa [fa2ForwardKernelStrided, FA1Views4D.kernel]
+  simpa [fa2ForwardKernelStrided, FA1Views4D.kernel, FA1Layout4D.kernel]
     using fa1_forward_correct_4D_views hBk hNumKVBlocks hSk
       views Q4D K4D V4D scale s hPidB hPidH hQBnd hQ4D hK4D hV4D
 

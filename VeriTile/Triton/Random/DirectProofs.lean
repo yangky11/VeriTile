@@ -84,6 +84,7 @@ theorem samePlan_succ (shape : TileShape) (n : Nat) :
     samePlan shape (n+1) =
       .step (selfBroadcast shape) (selfBroadcast shape) (samePlan shape n) := rfl
 
+set_option backward.isDefEq.respectTransparency false in
 theorem samePlan_pointwise {shape : TileShape} (n : Nat)
     (f : TileIndex shape → Counter) (key : Key) :
     run (samePlan shape n) (ofPointwise f) key =
@@ -91,7 +92,7 @@ theorem samePlan_pointwise {shape : TileShape} (n : Nat)
   induction n generalizing f key with
   | zero => rfl
   | succ n ih =>
-      rw [samePlan_succ, run_step, round_pointwise]
+      with_unfolding_all rw [samePlan_succ, run_step, round_pointwise]
       exact (ih (fun i => Random.step (f i) key) (bumpKey key)).trans
         (congrArg ofPointwise (funext fun i => (philox_succ n (f i) key).symm))
 
@@ -117,11 +118,12 @@ theorem uniform_first_round {shape : TileShape}
     sameShapes, uniformInputShapes]
   all_goals first | rfl | simp only [scalarRight_left, self_left, self_right]
 
+set_option backward.isDefEq.respectTransparency false in
 theorem uniformPlan_pointwise {shape : TileShape} (remaining : Nat)
     (c0 c2 c3 : TileIndex shape → Word) (c1 : Word) (key : Key) :
     run (uniformPlan shape remaining) (uniformInput c0 c2 c3 c1) key =
       ofPointwise (fun i => philox (remaining+1) ⟨c0 i, c1, c2 i, c3 i⟩ key) := by
-  rw [uniformPlan, run_step, uniform_first_round]
+  with_unfolding_all rw [uniformPlan, run_step, uniform_first_round]
   exact (samePlan_pointwise remaining
     (fun i => Random.step ⟨c0 i, c1, c2 i, c3 i⟩ key) (bumpKey key)).trans
     (congrArg ofPointwise

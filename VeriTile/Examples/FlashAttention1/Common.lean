@@ -729,21 +729,22 @@ theorem block_scores_tile_eq {M D Bk N : Nat}
     = ⟨fun idx : TileIndex [M, Bk] =>
         maskedScore (qb * M) Q K scale idx.1
           (StreamingAccumulator.blockIndex Bk N n (Nat.succ_le_iff.mpr hn) idx.2.1)⟩ := by
-  ext idx
-  obtain ⟨i, j, u⟩ := idx
-  simp only [Tile.select_data, Tile.ofReal_data]
-  have hIdx : (StreamingAccumulator.blockIndex Bk N n (Nat.succ_le_iff.mpr hn) j).val
-            = n * Bk + j.val := by simp [StreamingAccumulator.blockIndex]
-  by_cases h_mask : n * Bk + j.val ≤ qb * M + i.val
-  · rw [decide_eq_true h_mask]
-    simp only [if_true]
-    rw [maskedScore_of_le (qb * M) Q K scale i _ (by rw [hIdx]; exact h_mask)]
-    rfl
-  · rw [decide_eq_false h_mask]
-    show (none : WithBot ℝ) = maskedScore (qb * M) Q K scale i
-        (StreamingAccumulator.blockIndex Bk N n (Nat.succ_le_iff.mpr hn) j)
-    rw [maskedScore_of_not_le (qb * M) Q K scale i _ (by rw [hIdx]; exact h_mask)]
-    rfl
+  set_option backward.isDefEq.respectTransparency false in
+    ext idx
+    obtain ⟨i, j, u⟩ := idx
+    simp only [Tile.select_data, Tile.ofReal_data]
+    have hIdx : (StreamingAccumulator.blockIndex Bk N n (Nat.succ_le_iff.mpr hn) j).val
+              = n * Bk + j.val := by simp [StreamingAccumulator.blockIndex]
+    by_cases h_mask : n * Bk + j.val ≤ qb * M + i.val
+    · simp only [decide_eq_true h_mask]
+      simp only [if_true]
+      rw [maskedScore_of_le (qb * M) Q K scale i _ (by rw [hIdx]; exact h_mask)]
+      rfl
+    · simp only [decide_eq_false h_mask]
+      show (none : WithBot ℝ) = maskedScore (qb * M) Q K scale i
+          (StreamingAccumulator.blockIndex Bk N n (Nat.succ_le_iff.mpr hn) j)
+      rw [maskedScore_of_not_le (qb * M) Q K scale i _ (by rw [hIdx]; exact h_mask)]
+      rfl
 
 /-- Row-max of the causal scores tile: `tl.max(scores, axis=1)` produces
 `Finset.univ.sup` of the per-row `maskedScore`. The reduce-max here uses
@@ -894,19 +895,20 @@ theorem kernelIfSup_eq_maskedScoreSup {M D Bk N : Nat}
       (fun x : Fin Bk =>
         maskedScore (qb * M) Q K scale i
           (StreamingAccumulator.blockIndex Bk N k (Nat.succ_le_iff.mpr hk) x))) := by
-  apply Finset.sup_congr rfl
-  intro x _
-  by_cases h_mask : k * Bk + x.val ≤ qb * M + i.val
-  · rw [maskedScore_of_le (qb * M) Q K scale i _
-        (by simp [StreamingAccumulator.blockIndex]; exact h_mask)]
-    rw [if_pos h_mask]
-    unfold StreamingAccumulator.scaledScore
-    ring_nf
-    rfl
-  · rw [maskedScore_of_not_le (qb * M) Q K scale i _
-        (by simp [StreamingAccumulator.blockIndex]; omega)]
-    simp [h_mask]
-    rfl
+  set_option backward.isDefEq.respectTransparency false in
+    apply Finset.sup_congr rfl
+    intro x _
+    by_cases h_mask : k * Bk + x.val ≤ qb * M + i.val
+    · rw [maskedScore_of_le (qb * M) Q K scale i _
+          (by simp [StreamingAccumulator.blockIndex]; exact h_mask)]
+      with_unfolding_all rw [if_pos h_mask]
+      unfold StreamingAccumulator.scaledScore
+      ring_nf
+      rfl
+    · rw [maskedScore_of_not_le (qb * M) Q K scale i _
+          (by simp [StreamingAccumulator.blockIndex]; omega)]
+      simp [h_mask]
+      rfl
 
 /-- Sup-form `mPartial(k+1)` recurrence over the kernel-side
 `if-then-some-else-none` lambda. The kernel's `Tile.reduceMaxDrop`

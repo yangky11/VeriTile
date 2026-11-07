@@ -24,6 +24,7 @@ private theorem guarded_nonzero {α : Type} (D : Domain α) (s : State α)
   have hv' := Option.some.inj (hv.symm.trans ha)
   simpa only [hv'] using hn
 
+set_option backward.isDefEq.respectTransparency false in
 set_option maxHeartbeats 1600000 in
 /-- Domain-restricted scalar equalities interpret the actual registered
 fragments, including their FP32 tags and operand guards. -/
@@ -60,7 +61,7 @@ theorem fragmentSound_of_values {α : Type} [Inhabited α]
     simp only [lhs, rhs, lhsCode, rhsCode, fragment, fragmentAlgebra,
       ref, plus, minus, times, divide, Reciprocal.lhs, Reciprocal.rhs,
       Reciprocal.div, Reciprocal.inv, Reciprocal.mul, Reciprocal.ref,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold,
       ComputeDType.eraseDType, numeric, ha]
     simp_all [State.setReg]
     funext i

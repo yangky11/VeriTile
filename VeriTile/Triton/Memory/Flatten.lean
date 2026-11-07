@@ -443,7 +443,7 @@ theorem flattenState_readMemAs (hd : A.Disjoint) (s : BlockState)
   cases hcell : (s.mem r o).readAs fd.toTileDType with
   | none => simp
   | some v =>
-      cases fd <;> simp
+      cases fd <;> rfl
 
 /-- Exact typed reads come back translated at in-bounds addresses. -/
 theorem flattenState_readMemTyped (hd : A.Disjoint) (s : BlockState)
@@ -829,7 +829,7 @@ theorem trTile_transpose {d : TileDType} (batch : TileShape) {M N : Nat}
       rintro ⟨i, restIdx⟩
       have h := congrArg (fun t => t.data restIdx)
         (ih ⟨fun rIdx => x.data (i, rIdx)⟩)
-      simpa [trTile, Tile.transpose_cons_data] using h
+      with_unfolding_all exact h
 
 /-- `trTile` commutes with `Tile.ptrAdd`: relocating the base then adding an
 offset is adding then relocating (`Nat.add_assoc`). -/
@@ -1740,6 +1740,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
       simp only [flattenOp, evalOp, evalOp_flatten A hd hcov a s hms hok hu,
         A.trTileFun_data dtype.toTileDType_ne_ptr dtype.toTileDType_ne_blockPtr,
         Option.map_id, id_eq]
+      rfl
   | _, _, .where c a b, s, hms, hok, hu => by
       simp only [Op.SafeAt] at hms
       simp only [Op.FlattenOk] at hok
@@ -2045,7 +2046,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         all_goals first
                           | exact absurd rfl hdt.1
                           | exact absurd rfl hdt.2
-                          | simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier]
+                          | (simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier] <;> rfl)
           | maskOther m other =>
               simp only [Op.SafeAt] at hms
               simp only [Op.FlattenOk] at hok
@@ -2178,7 +2179,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         all_goals first
                           | exact absurd rfl hdt.1
                           | exact absurd rfl hdt.2
-                          | simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier]
+                          | (simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier] <;> rfl)
           | maskOther m other =>
               simp only [Op.SafeAt] at hms
               simp only [Op.FlattenOk] at hok
@@ -2251,7 +2252,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                     evalOp, IHp, hps, Option.map_some]
                   refine congrArg some (Tile.ext fun i => ?_)
                   simp only [reduceIte, FlatAlloc.trTile, Region.cast_cast, Region.cast_self]
-                  rw [A.trCarrier_blockPtr_region, A.trCarrier_blockPtr_address,
+                  simp only [A.trCarrier_blockPtr_region, A.trCarrier_blockPtr_address,
                     A.trCarrier_blockPtr_inBounds]
                   by_cases hib : (ps.data i).inBounds
                       (TileShape.indexToList _ i) bc = true
@@ -2298,7 +2299,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         evalOp, IHp, hps, IHm, hm, Option.map_some]
                       refine congrArg some (Tile.ext fun i => ?_)
                       simp only [reduceIte, FlatAlloc.trTile, Region.cast_cast, Region.cast_self]
-                      rw [A.trCarrier_blockPtr_region,
+                      simp only [A.trCarrier_blockPtr_region,
                         A.trCarrier_blockPtr_address,
                         A.trCarrier_blockPtr_inBounds]
                       by_cases hact : ms.data i = true
@@ -2327,7 +2328,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         all_goals first
                           | exact absurd rfl hdt.1
                           | exact absurd rfl hdt.2
-                          | simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier]
+                          | (simp [hu, FlatAlloc.flattenState, FlatAlloc.trCarrier] <;> rfl)
           | maskOther m other =>
               simp only [Op.SafeAt] at hms
               simp only [Op.FlattenOk] at hok
@@ -2365,7 +2366,7 @@ theorem FlatAlloc.evalOp_flatten (A : FlatAlloc) (hd : A.Disjoint)
                             IHo, ho, Option.map_some]
                           refine congrArg some (Tile.ext fun i => ?_)
                           simp only [reduceIte, FlatAlloc.trTile, Region.cast_cast, Region.cast_self]
-                          rw [A.trCarrier_blockPtr_region,
+                          simp only [A.trCarrier_blockPtr_region,
                             A.trCarrier_blockPtr_address,
                             A.trCarrier_blockPtr_inBounds]
                           by_cases hact : ms.data i = true
@@ -4302,7 +4303,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                   (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (Region.cast r) (offs.data i))) (values.data i))
                   (fun i _ _ => haddr offs hoffs i trivial)
                   (fun acc i _ _ => by
-                    simp only []
                     have hb2 := haddr offs hoffs i trivial
                     have hr2 : (Region.cast r : RegionName) ∈ A.regions := by
                       by_contra hnr
@@ -4336,7 +4336,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                   (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (ps.data i).1 (ps.data i).2)) (values.data i))
                   (fun i _ _ => haddr.2 ps hps i trivial)
                   (fun acc i _ _ => by
-                    simp only []
                     have hb2 := haddr.2 ps hps i trivial
                     have hr2 : (ps.data i).1 ∈ A.regions := by
                       by_contra hnr
@@ -4372,7 +4371,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                     simp only [Bool.and_eq_true] at hact
                     exact haddr.2 ps hps i trivial hact.2)
                   (fun acc i _ hact => by
-                    simp only []
                     simp only [Bool.and_eq_true] at hact
                     have hb2 := haddr.2 ps hps i trivial hact.2
                     have hr2 : (ps.data i).region ∈ A.regions := by
@@ -4424,7 +4422,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                       (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (Region.cast r) (offs.data i))) (values.data i))
                       (fun i _ hact => haddr offs hoffs i ⟨ms, hm, hact⟩)
                       (fun acc i _ hact => by
-                        simp only []
                         have hb2 := haddr offs hoffs i ⟨ms, hm, hact⟩
                         have hr2 : (Region.cast r : RegionName) ∈ A.regions := by
                           by_contra hnr
@@ -4465,7 +4462,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                       (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (ps.data i).1 (ps.data i).2)) (values.data i))
                       (fun i _ hact => haddr.2 ps hps i ⟨ms, hm, hact⟩)
                       (fun acc i _ hact => by
-                        simp only []
                         have hb2 := haddr.2 ps hps i ⟨ms, hm, hact⟩
                         have hr2 : (ps.data i).1 ∈ A.regions := by
                           by_contra hnr
@@ -4508,7 +4504,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         simp only [Bool.and_eq_true] at hact
                         exact haddr.2 ps hps i ⟨ms, hm, hact.1⟩ hact.2)
                       (fun acc i _ hact => by
-                        simp only []
                         simp only [Bool.and_eq_true] at hact
                         have hb2 := haddr.2 ps hps i ⟨ms, hm, hact.1⟩ hact.2
                         have hr2 : (ps.data i).region ∈ A.regions := by
@@ -4560,7 +4555,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                       (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (Region.cast r) (offs.data i))) (values.data i))
                       (fun i _ hact => haddr offs hoffs i ⟨ms, hm, hact⟩)
                       (fun acc i _ hact => by
-                        simp only []
                         have hb2 := haddr offs hoffs i ⟨ms, hm, hact⟩
                         have hr2 : (Region.cast r : RegionName) ∈ A.regions := by
                           by_contra hnr
@@ -4601,7 +4595,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                       (vf := fun acc i => nd.add (acc.readMemValue _ A.flat (A.addr (ps.data i).1 (ps.data i).2)) (values.data i))
                       (fun i _ hact => haddr.2 ps hps i ⟨ms, hm, hact⟩)
                       (fun acc i _ hact => by
-                        simp only []
                         have hb2 := haddr.2 ps hps i ⟨ms, hm, hact⟩
                         have hr2 : (ps.data i).1 ∈ A.regions := by
                           by_contra hnr
@@ -4644,7 +4637,6 @@ theorem FlatAlloc.stepStmt_flatten (A : FlatAlloc) (hd : A.Disjoint)
                         simp only [Bool.and_eq_true] at hact
                         exact haddr.2 ps hps i ⟨ms, hm, hact.1⟩ hact.2)
                       (fun acc i _ hact => by
-                        simp only []
                         simp only [Bool.and_eq_true] at hact
                         have hb2 := haddr.2 ps hps i ⟨ms, hm, hact.1⟩ hact.2
                         have hr2 : (ps.data i).region ∈ A.regions := by

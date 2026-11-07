@@ -6,6 +6,9 @@ Executable naive FA-1 boundary kernels and correctness bridges for issue #39.
 
 import VeriTile.Examples.FlashAttention1.Boundary
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -286,9 +289,6 @@ theorem fa1_naive_compute_boundaryD_correct
   · simp [fa1NaiveComputeBoundaryD, stepStmts, stepStmt, evalOp,
       hQ, hK, hV, scores, p, l, o, out, s1, s2, s3, s4, s',
       Option.bind]
-    repeat unfold evalOp
-    simp [hQ, hK, hV, scores, p, l, o, out, s1, s2, s3, s4, s',
-      Option.bind]
     rfl
   · simp [s', s4, out, fa1NaiveDirectOut, scores, p, l, o]
   · intro dtype shape name hScores hP hL hO hOut
@@ -377,11 +377,6 @@ theorem fa1_naive_compute_causal_boundaryD_correct
       hOffsM, hOffsN, hQ, hK, hV, scoresRaw, causal, scores, p, l, o, out,
       s1, s2, s3, s4, s5, s6, s',
       Tile.bop, Tile.cop, Tile.expandDim, Tile.select,
-      NumericDType.add, NumericDType.mul, ComparableDType.ge,
-      TileShape.dropInsertedIndex, Option.bind]
-    repeat unfold evalOp
-    simp [hOffsM, hOffsN, hQ, hK, hV, scoresRaw, causal, scores, p, l, o, out,
-      s1, s2, s3, s4, s5, s6, s', Tile.bop, Tile.cop, Tile.expandDim, Tile.select,
       NumericDType.add, NumericDType.mul, ComparableDType.ge,
       TileShape.dropInsertedIndex, Option.bind]
     rfl
@@ -612,13 +607,6 @@ theorem fa1_naive_pre_boundaryD_correct
       hPids0, hPids1, hPids2,
       qBase, kBase, vBase, oBase, qPtrs, qSeqMask, qDMask, qMask,
       qLoaded, kPtrs, vPtrs, kvDMask, kLoaded, vLoaded, s0]
-    unfold evalOp
-    simp [Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
-      ComparableDType.lt, Option.bind, TileShape.dropInsertedIndex,
-      BlockState.readMem, Tile.vec, Tile.ofReal,
-      hPids0, hPids1, hPids2,
-      qBase, kBase, vBase, oBase, qPtrs, qSeqMask, qDMask, qMask,
-      qLoaded, kPtrs, vPtrs, kvDMask, kLoaded, vLoaded, s0]
     rfl
   · simp [s0, s19, s18, s17, s16, s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1]
   · simp [s0, s19, s18, s17, s16, s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1]
@@ -724,11 +712,6 @@ theorem fa1_naive_store_boundaryD_correct
         NumericDType.add, NumericDType.mul,
         ComparableDType.lt, Bool.and_eq_true, Option.bind,
         TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hOffsM, hOffsD, hOBase, hOut, Tile.bop, Tile.cop, Tile.expandDim,
-        Tile.vec, NumericDType.add, NumericDType.mul,
-        ComparableDType.lt, Bool.and_eq_true, Option.bind,
-        TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
         + idx.1.val * sOM + idx.2.1.val * sOD =
       batch * sOB + headIdx * sOH
@@ -798,11 +781,6 @@ theorem fa1_naive_store_causal_boundaryD_correct
   simp [observeTileAt, fa1NaiveStoreBoundaryD, stepStmts, stepStmt, evalOp, hOffsM, hOffsD, hOBase, hOut,
         Tile.bop, Tile.cop, Tile.expandDim, Tile.vec,
         NumericDType.add, NumericDType.mul,
-        ComparableDType.lt, Bool.and_eq_true, Option.bind,
-        TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hOffsM, hOffsD, hOBase, hOut, Tile.bop, Tile.cop, Tile.expandDim,
-        Tile.vec, NumericDType.add, NumericDType.mul,
         ComparableDType.lt, Bool.and_eq_true, Option.bind,
         TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
@@ -1299,6 +1277,7 @@ theorem fa1_naive_forward_correct_4D_boundaryD_views
              ⟨s.pids 0 * M + idx.1.val, hLt⟩,
              ⟨idx.2.1.val, hDIdx⟩, PUnit.unit)) := by
   intro idx hLt hDIdx
+  unfold FA1Views4D.outBlockOffsetD FA1Layout4D.outBlockOffsetD
   simpa [FA1Views4D.qView, FA1Views4D.kView, FA1Views4D.vView,
          FA1Views4D.outBlockOffsetD, TensorView.loaded, TensorView.offset,
          FA1Layout4D.qStrides, FA1Layout4D.kStrides,
@@ -1341,6 +1320,7 @@ theorem fa1_naive_forward_correct_4D_causal_boundaryD_views
              ⟨s.pids 0 * M + idx.1.val, hLt⟩,
              ⟨idx.2.1.val, hDIdx⟩, PUnit.unit)) := by
   intro idx hLt hDIdx
+  unfold FA1Views4D.outBlockOffsetD FA1Layout4D.outBlockOffsetD
   simpa [FA1Views4D.qView, FA1Views4D.kView, FA1Views4D.vView,
          FA1Views4D.outBlockOffsetD, TensorView.loaded, TensorView.offset,
          FA1Layout4D.qStrides, FA1Layout4D.kStrides,

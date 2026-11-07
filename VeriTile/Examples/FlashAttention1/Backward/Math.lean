@@ -14,6 +14,8 @@ open BigOperators
 
 namespace FA1Backward
 
+set_option backward.isDefEq.respectTransparency false
+
 /-- Backward outputs for one non-causal FA-1 slice. -/
 structure Grads (M S D : Nat) where
   dQ : TileIndex [M, D] → ℝ

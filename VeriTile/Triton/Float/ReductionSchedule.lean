@@ -103,7 +103,8 @@ def insertRewrite (x : Fin n) (xs : List (Fin n)) :
   | [] => .refl _
   | y :: ys =>
     if h : x ≤ y then by
-      simpa only [List.orderedInsert_cons, if_pos h] using
+      simpa only [List.orderedInsert_cons, if_pos h, canonical, ReductionTree.ofList,
+        List.foldr_cons] using
         (Rewrite.refl (.add (.input x) (canonical (y :: ys))))
     else by
       rw [List.orderedInsert_cons, if_neg h]

@@ -106,6 +106,7 @@ def reciprocal {α : Type} (f : Format) (M : Algebra α) (a b : α) : α :=
     (M.binary (some (precision f)) .real .div (M.literal (some (precision f)) .real 1) b))
 
 set_option maxHeartbeats 1200000 in
+set_option backward.isDefEq.respectTransparency false in
 theorem apply_rule {α : Type} [Inhabited α] {f : Format} (R : Rules f) (selected : f.Available)
     (M : Algebra α) (D : Domain α) (hM : Models R.assumptions M D)
     (s : State α) (a b : α) (ha : D .finite a) (hb : D .finite b) (hn : D .nonzero b) :
@@ -122,7 +123,7 @@ theorem apply_rule {α : Type} [Inhabited α] {f : Format} (R : Rules f) (select
   cases f <;> simp only [lhs, rhs] at h
   all_goals
     specialize h hg hg
-    simp only [run, step, evalExpr, evalComputeOp, evalOp_unfold, div, inv, mul, ref,
+    simp only [run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, div, inv, mul, ref,
       ComputeDType.eraseDType, numeric, State.setReg_same, t] at h
     -- Simplify concrete register names before selecting the two successful runs.
     simp [State.setReg, quotient, reciprocal, finish, precision] at h ⊢

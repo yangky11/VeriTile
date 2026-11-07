@@ -8,6 +8,9 @@ import VeriTile.Triton.Float
 import VeriTile.Examples.FlashAttention1.NaiveKernel
 import VeriTile.Meta.Specification
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton

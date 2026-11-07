@@ -44,6 +44,7 @@ def storeGain (Y : RegionName) : ComputeKernel :=
     tl.store(Y, gain)
   }
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The same pasted body accepts different call values without rewriting it. -/
 theorem actual_argument (Y : RegionName) (gain : ℝ) (s : BlockState) :
     (exec ((storeGain Y).withScalarArguments [ScalarArgument.fp32 "gain" gain]).eraseDType.toAlgKernel s).map

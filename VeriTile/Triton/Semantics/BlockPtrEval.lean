@@ -116,7 +116,8 @@ theorem load_blockPtr_none_real {shape : TileShape}
   simp only [evalOp, hp, Option.bind]
   refine congrArg some ?_
   ext i
-  simp only [BlockPtr.inBounds_nil_checkedAxes, if_true, BlockState.readMemValue_real]
+  simp only [BlockPtr.inBounds_nil_checkedAxes, BlockState.readMemValue_real]
+  rfl
 
 /-- **Zero-row-offset block-ptr load.** A no-boundary-check `.real` load of a
 well-formed 2D block-pointer with offsets `[0, colOff]` reads `readMem` at the
@@ -138,6 +139,7 @@ theorem load_blockPtr_K_eval
   refine congrArg some ?_
   ext idx
   simp only [TileShape.blockPtr_address_2d_zero_row_offset_index]
+  rfl
 
 /-- **`[rowOff, 0]`-advanced block-ptr load.** A no-boundary-check `.real` load
 of a well-formed 2D block-pointer with offsets `[rowOff, 0]` reads `readMem` at
@@ -159,5 +161,6 @@ theorem load_blockPtr_Q_eval
   refine congrArg some ?_
   ext idx
   simp only [TileShape.blockPtr_address_2d_row_offset_index]
+  rfl
 
 end VeriTile.Triton

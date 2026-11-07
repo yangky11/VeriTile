@@ -10,6 +10,9 @@ namespace VeriTile.Examples
 
 open VeriTile.Triton
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 /-- Reading the `n`-th KV block through the row-major address expression
 used by the loop gives the corresponding `blockIndex` cell of a full
 `[Bk * numKVBlocks, D]` input. -/

@@ -234,6 +234,7 @@ def Contextual {α : Type} [Inhabited α] (M : Algebra α) (s : State α)
     (before after : List ComputeStmt) (lhs rhs : ComputeStmt) : Prop :=
   run (engine M) (before ++ lhs :: after) s = run (engine M) (before ++ rhs :: after) s
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Commute an explicit fp32 addition after checking its actual operands.
 Subexpressions, including reductions, keep their fp32 evaluation context. -/
 @[spec_rule] theorem contextual_add_fp32_commute {α : Type} [Inhabited α]
@@ -249,7 +250,7 @@ Subexpressions, including reductions, keep their fp32 evaluation context. -/
   cases hp : run (engine M) before s with
   | none => rfl
   | some t =>
-    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp]
+    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp_alg]
     have eadd (x y : Op .real shape) :
         Structural.evalOp (engine M) (some .fp32) (.add .real (sameShape shape) x y) t =
           ((Structural.evalOp (engine M) (some .fp32) x t).bind fun vx =>
@@ -445,6 +446,7 @@ an opaque numerical model. The numerical step uses the strict multiplication cer
         ((hd t hp va vb ha hb).1 i)
     rw [hvalues]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Commute an explicitly fp32 tile/scalar multiplication, including computed
 operands. Guards use the same precision as the operation; evaluation failures
 and the complete surrounding context are preserved. -/
@@ -461,7 +463,7 @@ and the complete surrounding context are preserved. -/
   cases hp : run (engine M) before s with
   | none => rfl
   | some t =>
-    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp]
+    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp_alg]
     have er : Structural.evalOp (engine M) (some .fp32) (.mul .real .scalarR a b) t =
         ((Structural.evalOp (engine M) (some .fp32) a t).bind fun va =>
           (Structural.evalOp (engine M) (some .fp32) b t).bind fun vb =>
@@ -549,6 +551,7 @@ in the unchanged prefix and suffix. -/
       (.assign .real (n :: rest) out (.alg (.mul .real .scalarR a (.div .real .nil (.const 1) (.const b))))) :=
   div_mul_rcp R M D hM s before after out a b hd
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Commute a loaded tile and scalar parameter inside an explicit fp32 cast.
 The cast remains an opaque operation on both sides. Register lookup is
 precision independent, and the parameter literal is interpreted at fp32 in
@@ -571,7 +574,7 @@ both the domain and the computation; no cast identity is used. -/
   cases hp : run (engine M) before s with
   | none => rfl
   | some t =>
-    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp]
+    simp only [Option.bind_some, run, step, Structural.evalExpr, evalComputeOp_alg]
     have hv : Structural.evalOp (engine M) (some .fp32)
         (.castFloat .real .real (.mul .real .scalarR
           (.ref .real (n :: rest) tile) (.const scale))) t =
@@ -589,7 +592,6 @@ both the domain and the computation; no cast identity is used. -/
         exact congrArg (M.cast (some .fp32) .real .real)
           (ScalarArithmetic.mul_comm_strict M D hM t _ _ (hfinite i) hscale)
     erw [hv]
-    rfl
 
 /-- Commute tile/scalar multiplication inside an eager where expression. The
 actual operands are guarded at the reached prefix, including unselected lanes;

@@ -127,9 +127,10 @@ theorem direct_read_eq_logical (read : Nat → Word) (t : Tensor)
   simp only [logicalValue, notNeg, Bool.false_eq_true, ↓reduceIte,
     laws.contiguous hc i hi]
   apply congrArg read
-  simp only [DataView.address, DataView.base, dataView,
-    if_neg (by omega : t.metadata.numel ≠ 0), Storage.address]
-  omega
+  simp only [DataView.address, DataView.base, dataView, Storage.address]
+  change (if t.metadata.numel = 0 then 0 else t.storage.base + 4 * t.storageOffset) + 4 * i =
+    t.storage.base + 4 * (t.storageOffset + i)
+  split <;> omega
 
 theorem actual_pointer (t : Tensor) (laws : TensorLaws t)
     (hc : t.metadata.isContiguous = Bool.true) (hne : 0 < t.metadata.numel) :

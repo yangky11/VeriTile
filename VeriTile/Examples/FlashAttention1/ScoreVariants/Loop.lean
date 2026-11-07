@@ -8,6 +8,9 @@ import VeriTile.Examples.FlashAttention1.ScoreVariants.Block
 import VeriTile.Examples.FlashAttention1.Core.Bodies
 import VeriTile.Triton.Memory.View
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -1091,8 +1094,10 @@ theorem fa1_score_loop_scoreSoftcap_correct
       unfold scores
       simp only [evalOp_mul, evalOp_const, evalOp_tanh, evalOp_div,
         evalOp_ref_setReg_same, Option.bind_some, sRaw]
-      simpa [raw] using
-        congrArg some (softcapScoreBlock_numeric_tile_eq softcap Q K scale k hk)
+      with_unfolding_all
+        simpa only [raw, Option.bind_eq_bind, Option.bind_some, ← WithBot.some_eq_coe, ← WithBot.none_eq_bot,
+          Option.some.injEq] using
+          congrArg some (softcapScoreBlock_numeric_tile_eq softcap Q K scale k hk)
     have hRawStep :
         stepStmt
           (Stmt.assign .real [M, Bk] "raw"
@@ -1255,8 +1260,10 @@ theorem fa1_score_loop_scoreAlibi_correct
       unfold scores
       repeat unfold evalOp
       simp [sDist, sDelta, sRaw, BlockState.setReg, raw, dist, Option.bind]
-      simpa [raw, dist] using
-        congrArg some (alibiScoreBlock_numeric_tile_eq (origPid * M) slope Q K scale k hk)
+      with_unfolding_all
+        simpa only [raw, dist, ← WithBot.some_eq_coe, ← WithBot.none_eq_bot,
+          Option.some.injEq] using
+          congrArg some (alibiScoreBlock_numeric_tile_eq (origPid * M) slope Q K scale k hk)
     have hRawStep :
         stepStmt
           (Stmt.assign .real [M, Bk] "raw"
@@ -1492,8 +1499,10 @@ theorem fa1_score_loop_scoreSlidingWindow_correct
       unfold scores
       repeat unfold evalOp
       simp [sVis, sDist, sDelta, sRaw, BlockState.setReg, raw, vis, Option.bind]
-      simpa [raw, vis] using
-        congrArg some (slidingScoreBlock_numeric_tile_eq (origPid * M) window Q K scale k hk)
+      with_unfolding_all
+        simpa only [raw, vis, ← WithBot.some_eq_coe, ← WithBot.none_eq_bot,
+          Option.some.injEq] using
+          congrArg some (slidingScoreBlock_numeric_tile_eq (origPid * M) window Q K scale k hk)
     have hRawStep :
         stepStmt
           (Stmt.assign .real [M, Bk] "raw"
@@ -1751,8 +1760,10 @@ theorem fa1_score_loop_scoreAlibiSlidingSoftcap_correct
       unfold biased
       repeat unfold evalOp
       simp [sDist, sDelta, sRaw, BlockState.setReg, raw, dist, Option.bind]
-      simpa [raw, dist] using
-        congrArg some (alibiScoreBlock_numeric_eq_tile (origPid * M) slope Q K scale k hk)
+      with_unfolding_all
+        simpa only [raw, dist, ← WithBot.some_eq_coe, ← WithBot.none_eq_bot,
+          Option.some.injEq] using
+          congrArg some (alibiScoreBlock_numeric_eq_tile (origPid * M) slope Q K scale k hk)
     have hCappedEval :
         evalOp
           (Op.mul .real Broadcast.scalarL
@@ -1786,10 +1797,9 @@ theorem fa1_score_loop_scoreAlibiSlidingSoftcap_correct
       repeat unfold evalOp
       simp [sVis, sCapped, sBiased, sDist, sDelta, sRaw, BlockState.setReg,
         capped, vis, Option.bind]
-      simpa [capped, biased, vis] using
-        congrArg some
-          (alibiSlidingSoftcapScoreBlock_numeric_tile_eq
-            (origPid * M) window slope softcap Q K scale k hk)
+      simpa only [capped, biased, vis, maskedScoreTile, ← WithBot.none_eq_bot] using
+        alibiSlidingSoftcapScoreBlockTile_eq
+          (origPid * M) window slope softcap Q K scale k hk
     have hRawStep :
         stepStmt
           (Stmt.assign .real [M, Bk] "raw"
@@ -2299,8 +2309,6 @@ theorem fa1_score_loop_tail_correct
         VeriTile.Triton.evalOp_ref, evalOp_expandDim_one_real,
         s4, s3, s2, s1, pExec, scoresTile, mNewExec, Tile.bop, Tile.uop,
         Tile.expandDim, NumericDType.sub, hscores]
-      change some (s3.setReg "p" .real [M, Bk] pExec) = some s4
-      rfl
     have h5 :
         stepStmt
           (Stmt.assign .real [M] "l_new"
@@ -2313,11 +2321,6 @@ theorem fa1_score_loop_tail_correct
                 (Op.ref .real [M, Bk] "p")))) s4 = some s5 := by
       simp [stepStmt, evalOp_add, evalOp_mul, evalOp_reduceSum, s5, s4, s3,
         s2, s1, lNewExec, alphaExec, pExec, lOld, Tile.bop, NumericDType.add,
-        NumericDType.mul, hl]
-      unfold evalOp
-      simp [s5, s4, s3, s2, s1, lNewExec, alphaExec, pExec, lOld, Tile.bop,
-        Tile.reduceSum, Tile.reduceSumDrop, TileShape.axisDim,
-        TileShape.eraseAxis, TileShape.insertAxisIndex, NumericDType.add,
         NumericDType.mul, hl]
     have h6 :
         stepStmt
@@ -2332,12 +2335,6 @@ theorem fa1_score_loop_tail_correct
       simp [stepStmt, evalOp_add, evalOp_mul, evalOp_dot, s6, s5, s4, s3,
         s2, s1, oNewExec, alphaExec, pExec, oOld, Tile.bop, Tile.dot,
         Tile.expandDim, NumericDType.add, NumericDType.mul, ho, hvReg]
-      unfold evalOp
-      simp [VeriTile.Triton.evalOp_expandDim, VeriTile.Triton.evalOp_expandDim_ref,
-        VeriTile.Triton.evalOp_ref, evalOp_expandDim_one_real,
-        s6, s5, s4, s3, s2, s1, oNewExec, alphaExec, pExec, oOld,
-        Tile.bop, Tile.uop, Tile.dot, Tile.expandDim, NumericDType.add,
-        NumericDType.mul, Option.bind, ho, hvReg]
     have h7 :
         stepStmt
           (Stmt.assign .real [M] "m_i"
@@ -2690,9 +2687,6 @@ theorem fa1_score_preLoop_correct
   refine ⟨s0, ?_, ?_⟩
   · simp [fa1ScorePreLoop, stepStmts, stepStmt, evalOp, Tile.bop, Tile.expandDim,
       NumericDType.add, NumericDType.mul, Option.bind, TileShape.dropInsertedIndex, Tile.vec, Tile.ofReal, qPtrs, qLoaded, s0]
-    unfold evalOp
-    simp [fa1ScorePreLoop, stepStmts, stepStmt, Tile.bop, NumericDType.add,
-      NumericDType.mul, Option.bind, Tile.vec, Tile.ofReal, qPtrs, qLoaded, s0]
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp [s0]
     · simp [s0]

@@ -95,6 +95,7 @@ private theorem eval_mul {α : Type} [Inhabited α] (M : Algebra α)
         (Structural.evalOp M p y s).bind fun vy =>
           some (bop (M.binary p .real .mul) bc vx vy)) := rfl
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem assignment_add_commute {α : Type} [Inhabited α] (R : Spec.Assumptions GuardedFragment)
     (M : Algebra α) (D : Domain α) (hM : Models R M D)
     (s : State α) (out : RegName) (a b : Op .real shape)
@@ -102,7 +103,7 @@ private theorem assignment_add_commute {α : Type} [Inhabited α] (R : Spec.Assu
       Structural.evalOp M (some .fp32) b s = some vb →
       (∀ i, D .finite (va i)) ∧ (∀ i, D .finite (vb i))) :
     step M (assignment .add out a b) s = step M (assignment .add out b a) s := by
-  simp only [assignment, expression, step, Structural.evalExpr, Structural.evalComputeOp,
+  simp only [assignment, expression, step, Structural.evalExpr, Structural.evalComputeOp_alg,
     ComputeDType.eraseDType, eval_add]
   cases ha : Structural.evalOp M (some .fp32) a s <;>
     cases hb : Structural.evalOp M (some .fp32) b s
@@ -129,6 +130,7 @@ theorem add_commute {α : Type} [Inhabited α] (R : Spec.Assumptions GuardedFrag
     simp only [Option.bind_some, run]
     rw [assignment_add_commute R M D hM t out site.left site.right (hd t hp)]
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem assignment_mul_commute {α : Type} [Inhabited α] (R : Spec.Assumptions GuardedFragment)
     (M : Algebra α) (D : Domain α) (hM : Models R M D)
     (s : State α) (out : RegName) (a b : Op .real shape)
@@ -136,7 +138,7 @@ private theorem assignment_mul_commute {α : Type} [Inhabited α] (R : Spec.Assu
       Structural.evalOp M (some .fp32) b s = some vb →
       (∀ i, D .finite (va i)) ∧ (∀ i, D .finite (vb i))) :
     step M (assignment .mul out a b) s = step M (assignment .mul out b a) s := by
-  simp only [assignment, expression, step, Structural.evalExpr, Structural.evalComputeOp,
+  simp only [assignment, expression, step, Structural.evalExpr, Structural.evalComputeOp_alg,
     ComputeDType.eraseDType, eval_mul]
   cases ha : Structural.evalOp M (some .fp32) a s <;>
     cases hb : Structural.evalOp M (some .fp32) b s

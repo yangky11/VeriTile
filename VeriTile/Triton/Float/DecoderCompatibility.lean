@@ -168,8 +168,9 @@ theorem const_smallest_subnormal :
 theorem bitcast_negative_zero :
     (ComputeOp.bitcast .uint32 .fp32 rfl
       (.const ⟨0x80000000#32⟩)).toAlgorithm? = .ok (Op.const 0) := by
-  simpa only [ComputeOp.toAlgorithm?, ComputeOp.constOpToAlgorithm?,
-    ComputeOp.constPayload?, ComputeOp.bitcastPayload] using const_negative_zero
+  with_unfolding_all
+    change ComputeOp.constToAlgorithm? .fp32 ⟨0x80000000#32⟩ = .ok (Op.const 0)
+  exact const_negative_zero
 
 theorem const_nan_rejected :
     ComputeOp.constToAlgorithm? .fp32 ⟨0x7fc00001#32⟩ =

@@ -187,6 +187,7 @@ theorem atomicTraceEvents_atomicRMW_xchg_real_scalar_const
             result := some (s.mem region 0) }] := by
   simp [atomicTraceEvents, foldAtomicRMWTraceIndices, evalMask,
     BlockState.atomicRMWAt, MemCell.real, MemCell.of]
+  with_unfolding_all rfl
 
 /-- Trace emitted by an unmasked region-addressed `atomic_add` whose offset and
 payload tiles are read from registers. -/

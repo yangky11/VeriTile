@@ -228,13 +228,13 @@ def Op.eraseDType : Op dtype shape → Op (VeriTile.Triton.eraseDType dtype) sha
       .makeBlockPtrDyn region baseOffset.eraseDType parentShape blockShape strides offsets
   | .makeBlockPtrDynOffsets region baseOffset parentShape blockShape strides offsets =>
       .makeBlockPtrDynOffsets region baseOffset.eraseDType parentShape blockShape
-        strides (offsets.map (·.eraseDType))
+        strides (offsets.attach.map (fun ⟨e, _he⟩ => e.eraseDType))
   | .makeBlockPtrDynMetadata region baseOffset parentShape blockShape strides offsets =>
       .makeBlockPtrDynMetadata region baseOffset.eraseDType parentShape blockShape
-        (strides.map (·.eraseDType)) (offsets.map (·.eraseDType))
+        (strides.attach.map (fun ⟨e, _he⟩ => e.eraseDType)) (offsets.attach.map (fun ⟨e, _he⟩ => e.eraseDType))
   | .advanceBlockPtr ptr deltas => .advanceBlockPtr ptr.eraseDType deltas
   | .advanceBlockPtrDyn ptr deltas =>
-      .advanceBlockPtrDyn ptr.eraseDType (deltas.map (·.eraseDType))
+      .advanceBlockPtrDyn ptr.eraseDType (deltas.attach.map (fun ⟨e, _he⟩ => e.eraseDType))
   | .load dtype mem mask padding => .load (VeriTile.Triton.eraseDType dtype) mem.eraseDType mask.eraseDType padding
   | .natToReal a => .natToReal a.eraseDType
   | .intToReal a => .intToReal a.eraseDType
@@ -246,7 +246,7 @@ decreasing_by
     try
       have hs := List.sizeOf_lt_of_mem (by assumption)
       omega
-    try decreasing_trivial
+
 
 /-- Erase explicit floating dtype annotations from a memory access. The
 region's phantom dtype is independent of the access dtype, so we keep
@@ -348,13 +348,43 @@ end
       Op.ref (VeriTile.Triton.eraseDType dtype) shape name := by
   rw [Op.eraseDType.eq_def]
 
+/-- The attached-list implementation carries only termination witnesses;
+its public equation remains the original elementwise erasure. -/
+@[simp] theorem Op.eraseDType_makeBlockPtrDynOffsets
+    (region : RegionName) (baseOffset : Op .nat []) (parentShape blockShape strides : List Nat)
+    (offsets : List (Op .nat [])) :
+    (Op.makeBlockPtrDynOffsets region baseOffset parentShape blockShape strides offsets).eraseDType =
+      Op.makeBlockPtrDynOffsets region baseOffset.eraseDType parentShape blockShape strides
+        (offsets.map Op.eraseDType) := by
+  rw [Op.eraseDType.eq_def]
+  dsimp only
+  congr 1 <;> exact List.attach_map_val
+
+@[simp] theorem Op.eraseDType_makeBlockPtrDynMetadata
+    (region : RegionName) (baseOffset : Op .nat []) (parentShape blockShape : List Nat)
+    (strides offsets : List (Op .nat [])) :
+    (Op.makeBlockPtrDynMetadata region baseOffset parentShape blockShape strides offsets).eraseDType =
+      Op.makeBlockPtrDynMetadata region baseOffset.eraseDType parentShape blockShape
+        (strides.map Op.eraseDType) (offsets.map Op.eraseDType) := by
+  rw [Op.eraseDType.eq_def]
+  dsimp only
+  congr 1 <;> exact List.attach_map_val
+
+@[simp] theorem Op.eraseDType_advanceBlockPtrDyn
+    (ptr : Op .blockPtr shape) (deltas : List (Op .int [])) :
+    (Op.advanceBlockPtrDyn ptr deltas).eraseDType =
+      Op.advanceBlockPtrDyn ptr.eraseDType (deltas.map Op.eraseDType) := by
+  rw [Op.eraseDType.eq_def]
+  dsimp only
+  congr 1 <;> exact List.attach_map_val
+
 @[simp] theorem Op.eraseDType_castFloat
     (src dst : FloatDType) (e : Op src.toTileDType shape) :
     (Op.castFloat src dst e).eraseDType =
       cast (by simp [eraseDType_float src, eraseDType_float dst])
         e.eraseDType := by
   rw [Op.eraseDType.eq_def]
-  simp [VeriTile.Triton.eraseDType]
+  cases src <;> cases dst <;> rfl
 
 @[simp] theorem Op.eraseDType_load
     (dtype : TileDType) (mem : MemAccess dtype shape)
@@ -370,7 +400,7 @@ end
         (@Op.reduceMax shape axis keepDims
           (cast (by simp [VeriTile.Triton.eraseDType]) e.eraseDType)) := by
   rw [Op.eraseDType.eq_def]
-  simp [VeriTile.Triton.eraseDType]
+  rfl
 
 @[simp] theorem Op.eraseDType_reduceSum
     (axis : Fin shape.length) (keepDims : Bool) (e : Op .real shape) :
@@ -379,7 +409,7 @@ end
         (@Op.reduceSum shape axis keepDims
           (cast (by simp [VeriTile.Triton.eraseDType]) e.eraseDType)) := by
   rw [Op.eraseDType.eq_def]
-  simp [VeriTile.Triton.eraseDType]
+  rfl
 
 @[simp] theorem Stmt.eraseDType_store
     (dtype : TileDType) (shape : TileShape)
@@ -430,6 +460,14 @@ def eraseDType (ck : ComputeKernel) : ComputeKernel :=
 theorem eraseDType_of_projection_error (ck : ComputeKernel) (err : EraseDTypeError)
     (h : ck.toAlgorithm? = .error err) : ck.eraseDType = ck := by
   simp [eraseDType, h]
+
+/-- Successful compute projection remains successful after scalar dtype
+erasure. This proof does not unfold expressions in the projected body, so it
+also provides a small admission certificate for large pasted kernels. -/
+theorem eraseDType_projection (ck : ComputeKernel) (alg : AlgKernel)
+    (h : ck.toAlgorithm? = .ok alg) :
+    ck.eraseDType.toAlgorithm? = .ok ck.eraseDType.toAlgKernel := by
+  simp only [eraseDType, h, toAlgorithm?_fromKernelBody, toAlgKernel]
 
 end ComputeKernel
 

@@ -963,7 +963,14 @@ private def toU (io : MetaMasked2DKernelIO₂ₓ₃) : UKernelIO where
     | ⟨0, _⟩ => io.out1
     | ⟨1, _⟩ => io.out2
     | _ => io.out3
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.mbufL, io.inp, io.out1, io.out2, io.out3]
+      simp
+    · change io.out2 ∈ [io.mbufL, io.inp, io.out1, io.out2, io.out3]
+      simp
+    · change io.out3 ∈ [io.mbufL, io.inp, io.out1, io.out2, io.out3]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i vals p₀ p₁ _ => match i with

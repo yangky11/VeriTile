@@ -34,7 +34,7 @@ theorem canonical_uniform_decode (word : Word) :
   have hn : n < 2^31 := foldSign_lt word
   have hfirst : (FP.round .fp32 FP.Config.ieeeValue (Rat.ofInt (n:Int))).decode =
       .finite false (round24 n:Rat) := by
-    simpa only [pow_zero, div_one] using round_dyadic_decode n 0 (by omega) (by decide)
+    simpa only [pow_zero, div_one, Rat.ofInt_eq_cast, Int.cast_natCast] using round_dyadic_decode n 0 (by omega) (by decide)
   unfold uniform
   rw [mul_of_positive_decodes _ _ _ _ hfirst scale_decode]
   have harg : (round24 n:Rat)*((16777215:Rat)/2^55) =

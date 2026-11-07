@@ -541,8 +541,10 @@ theorem paddingValue_of_undef_zero (s : BlockState) (dtype : TileDType)
   cases padding with
   | zero => rfl
   | unspecified =>
-      cases dtype <;> simp [paddingValue, unspecifiedValue, h, defaultCarrier,
-        FloatDType.ofReal]
+      cases dtype <;>
+        dsimp only [paddingValue, unspecifiedValue, defaultCarrier,
+          FloatDType.ofReal, FloatDType.ofWithBot]
+      all_goals first | rfl | (rw [h] <;> simp)
 
 theorem paddingValue_congr (s t : BlockState) (dtype : TileDType)
     (padding : PaddingOption) (region : RegionName) (offset : Nat)
@@ -550,7 +552,9 @@ theorem paddingValue_congr (s t : BlockState) (dtype : TileDType)
     s.paddingValue dtype padding region offset = t.paddingValue dtype padding region offset := by
   cases padding with
   | zero => rfl
-  | unspecified => cases dtype <;> simp only [paddingValue, unspecifiedValue, h]
+  | unspecified =>
+      cases dtype <;> dsimp only [paddingValue, unspecifiedValue]
+      all_goals first | rfl | rw [h]
 
 def rmwReturnedValue (dtype : TileDType) (event : RMWEvent) : TileCarrier dtype :=
   match event.result with
@@ -656,7 +660,7 @@ and use the dtype default on mismatch. -/
   unfold readMemValue
   unfold readMemAs readMem
   cases h : (s.mem region offset).readAs .real with
-  | none => simp [h]
+  | none => simp [h]; rfl
   | some value =>
       cases value
       · simp [h]
@@ -671,7 +675,7 @@ and use the dtype default on mismatch. -/
     s.readMemAs .real region offset = some (s.readMem region offset) := by
   unfold readMemAs readMem
   cases h : (s.mem region offset).readAs .real with
-  | none => simp [h]
+  | none => simp [h]; rfl
   | some value =>
       cases value
       · simp [h]
@@ -811,7 +815,7 @@ theorem writeMem_readMem_of_ne_offset (s : BlockState) (region : RegionName)
     s.writeMemTyped .real region offset v =
       s.writeMem region offset (FloatDType.real.storeValue v) := by
   unfold writeMemTyped
-  simp
+  exact writeMemAs_real s region offset v
 
 private theorem foldl_writeMem_preserves {α : Type} {region : RegionName}
     (offsetFn : α → Nat) (valueFn : α → ℝ) (o : Nat) (l : List α) :

@@ -10,6 +10,9 @@ namespace VeriTile.Examples
 
 open VeriTile.Triton
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 private def fa1PreLoopStridedState (qReg : RegionName) (M D : Nat)
     (sQB sQH sQS sQD : Nat) (sKB sKH : Nat) (sVB sVH : Nat)
     (sOB sOH : Nat) (s : BlockState) : BlockState :=

@@ -49,6 +49,7 @@ def Invariant (z : Tile .real [A, B]) (origin : BlockState) (i : Nat) (s : Block
   s.mem = origin.mem ∧ s.pids = origin.pids ∧
   (∀ d sh n, n ≠ "u" → n ≠ "v" → n ≠ "iter" → s.regs d sh n = origin.regs d sh n)
 
+set_option backward.isDefEq.respectTransparency false in
 set_option maxHeartbeats 1600000 in
 theorem loop_run (z : Tile .real [A, B]) (N : Nat) (s : BlockState)
     (hz : s.regs .real [A, B] "z" = some z)
@@ -65,7 +66,6 @@ theorem loop_run (z : Tile .real [A, B]) (N : Nat) (s : BlockState)
     refine ⟨out, ?_, ?_⟩
     · simp [body, stepStmts, stepStmt, evalOp.eq_def, hz, hv, BlockState.setReg,
         out, u, v, rowUpdate, colUpdate]
-      simp [Option.bind, hz]
       rfl
     · simp [out, Invariant, iterates, BlockState.setReg, u, v, hz, hm, hp]
       intro d sh n hnu hnv hni

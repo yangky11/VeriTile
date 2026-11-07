@@ -8,6 +8,9 @@ import VeriTile.Triton.Float
 import VeriTile.Examples.FlashAttention1.Core.Forward
 import VeriTile.Meta.Specification
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -546,6 +549,7 @@ theorem fa1_forward_correct_4D_layout
              ⟨s.pids 0 * M + idx.1.val, by have := idx.1.isLt; omega⟩,
              idx.2.1, PUnit.unit)) := by
   intro idx
+  unfold FA1Layout4D.outBlockOffset
   simpa [FA1Layout4D.kernel, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffset,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,
@@ -586,6 +590,7 @@ theorem fa1_forward_correct_4D_causal_layout
              ⟨s.pids 0 * M + idx.1.val, by have := idx.1.isLt; omega⟩,
              idx.2.1, PUnit.unit)) := by
   intro idx
+  unfold FA1Layout4D.outBlockOffset
   simpa [FA1Layout4D.causalKernel, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffset,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,

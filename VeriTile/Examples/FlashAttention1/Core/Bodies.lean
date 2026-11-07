@@ -10,6 +10,9 @@ namespace VeriTile.Examples
 
 open VeriTile.Triton
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 def fa1PreLoop (qReg : RegionName) (M D : Nat) : List Stmt :=
   [ Stmt.assign .nat [] "pid" (Op.programId 0)
   , Stmt.assign .nat [M] "offs_m"

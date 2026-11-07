@@ -2,6 +2,7 @@ import VeriTile.Triton.Float.BitValue
 import VeriTile.Meta.StatementAudit
 import Mathlib.Data.Nat.Lattice
 import Mathlib.Tactic.SplitIfs
+import Mathlib.Tactic.NormNum
 
 /-! Exact laws for the existing maxnum profile, at FP32 and BF16 precision.
 
@@ -20,6 +21,8 @@ does not inherit these bitwise laws merely by having the same Real projection.
 -/
 namespace VeriTile.Triton.FP.MaximumExact
 namespace Generic
+
+set_option backward.isDefEq.respectTransparency false
 
 abbrev Word (f : Format) := BitVec f.width
 
@@ -93,7 +96,7 @@ theorem rank_injective : Function.Injective (rank (f := f)) := by
   apply BitVec.eq_of_toNat_eq
   dsimp only [rank] at h
   cases f <;> simp only [Format.width, Format.fractionBits] at * <;>
-    split_ifs at h <;> omega
+    norm_num at hx hy h <;> split_ifs at h <;> (try simp_all only [ite_true, ite_false]) <;> omega
 
 theorem finite_not_nan (x : Word f) (h : finite x) : nan x = false := by
   simp only [finite] at h
@@ -102,7 +105,8 @@ theorem finite_not_nan (x : Word f) (h : finite x) : nan x = false := by
 private theorem zero_cases (x : Word f) (h : zero x = true) :
     x = 0 ∨ x = BitVec.ofNat f.width (2^(f.fractionBits + 8)) := by
   have bound := x.isLt
-  have hmod : x.toNat % 2^(f.fractionBits + 8) = 0 := by simpa [zero, magnitude] using h
+  have hmod : x.toNat % 2^(f.fractionBits + 8) = 0 := by
+    exact of_decide_eq_true h
   have parts : x.toNat = 0 ∨ x.toNat = 2^(f.fractionBits + 8) := by
     cases f <;> simp only [Format.width, Format.fractionBits] at * <;> omega
   rcases parts with h | h
@@ -118,13 +122,15 @@ private theorem greater_rank (x y : Word f) (hx : nan x = false) (hy : nan y = f
   simp only [greater, hx, hy, hz, Bool.not_false, Bool.true_and]
   cases f
   · dsimp only [Word, Format.width, Format.fractionBits] at *
+    norm_num at bx by_
     by_cases sx : 32768 ≤ x.toNat <;> by_cases sy : 32768 ≤ y.toNat <;>
-      simp [sign, rank, magnitude, Format.width, Format.fractionBits] at * <;>
-        split_ifs <;> simp_all <;> (try simp only [← decide_not, decide_eq_decide]) <;> omega
+      simp [sign, rank, magnitude, Format.width, Format.fractionBits, sx, sy] <;>
+        (try simp only [← decide_not, decide_eq_decide]) <;> omega
   · dsimp only [Word, Format.width, Format.fractionBits] at *
+    norm_num at bx by_
     by_cases sx : 2147483648 ≤ x.toNat <;> by_cases sy : 2147483648 ≤ y.toNat <;>
-      simp [sign, rank, magnitude, Format.width, Format.fractionBits] at * <;>
-        split_ifs <;> simp_all <;> (try simp only [← decide_not, decide_eq_decide]) <;> omega
+      simp [sign, rank, magnitude, Format.width, Format.fractionBits, sx, sy] <;>
+        (try simp only [← decide_not, decide_eq_decide]) <;> omega
 
 theorem maximum_eq_rank (target : Target f) (x y : Word f)
     (hx : nan x = false) (hy : nan y = false) :
@@ -206,7 +212,7 @@ theorem max_neg_inf (target : Target f) (x : Word f) (hx : finite x) :
       cases f <;> decide +kernel]
     dsimp only [rank]
     cases f <;> simp only [finite, magnitude, Format.width, Format.fractionBits] at * <;>
-      split_ifs <;> omega
+      norm_num at * <;> split_ifs <;> (try simp_all only [ite_true, ite_false]) <;> omega
   exact if_pos hr
 
 /-- Zero-sign boundary values are part of the proved domain, not samples used

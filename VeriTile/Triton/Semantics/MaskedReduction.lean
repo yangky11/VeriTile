@@ -130,6 +130,7 @@ namespace TiledL2Norm
 
 /-! ## Sum/product carrier bridges -/
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Bridge: kernel-shape sum of squares with masked tail = pure `∑` form. -/
 theorem reduceSum_masked_sq_eq_some_sum
     (load : Fin BLOCK_N → ℝ)
@@ -175,6 +176,7 @@ theorem reduceSum_masked_sq_eq_some_sum
         (WithBot.coe_sum Finset.univ _).symm
     _ = some (∑ k, if active k then if active k then load k * load k else 0 else 0) := rfl
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Bridge: kernel-shape cross-product with masked tail = pure `∑` form. -/
 theorem reduceSum_masked_dot_eq_some_sum
     (xs ys : Fin BLOCK_N → ℝ)
@@ -325,7 +327,7 @@ Two spelling traps, both load-bearing:
 theorem ite_some_some {p : Prop} [inst : Decidable p] (a z : ℝ) :
     @ite (WithBot ℝ) p inst (some a) (some z)
       = (some (if p then a else z) : WithBot ℝ) := by
-  split_ifs <;> rfl
+  cases inst <;> rfl
 
 /-- **Guarded reduction bridge.** A `WithBot ℝ` reduction whose lanes are
 each (pointwise) a `some` of a real equals the coercion of the real reduction.

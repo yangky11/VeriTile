@@ -7,6 +7,7 @@ namespace VeriTile.Triton.FP.Exponential
 open Structural Guarded ScalarArithmetic
 
 set_option maxHeartbeats 1600000 in
+set_option backward.isDefEq.respectTransparency false in
 theorem exp_sub {α : Type} [Inhabited α] (R : Rules)
     (M : Algebra α) (D : Domain α) (hM : Models R.assumptions M D)
     (s : State α) : SoftmaxShift.LibdeviceExpSub M D := by
@@ -21,9 +22,11 @@ theorem exp_sub {α : Type} [Inhabited α] (R : Rules)
     · exact ⟨fun _ => b, by simp [t], hb⟩
   have h := hM lhs rhs (admitted R (.exp_sub .libdevice) (by decide)) t hg hg
   simp only [lhs, rhs, Atom.lhs, Atom.rhs, Backend.exp, fragment, run, step, evalExpr,
-    evalComputeOp, evalOp_unfold, ref, minus, divide, ComputeDType.eraseDType,
+    evalComputeOp_alg, evalOp_unfold, ref, minus, divide, ComputeDType.eraseDType,
     numeric, State.setReg_same, t] at h
   simp [State.setReg, SoftmaxShift.exp, ScalarArithmetic.sub, ScalarArithmetic.div] at h ⊢
   exact congrFun h PUnit.unit
+
+#axiomsClean exp_sub
 
 end VeriTile.Triton.FP.Exponential

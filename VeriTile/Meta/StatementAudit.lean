@@ -104,12 +104,11 @@ elab "#stmtSurfaceSubset " id:ident " ⊆ " "[" allow:ident,* "]" : command => d
 
 /-- Shared axiom check for explicit names and environment-discovered headlines. -/
 def auditAxioms (name : Name) : CommandElabM Unit := do
-  let env ← getEnv
-  let (_, st) := ((CollectAxioms.collect name).run env).run {}
+  let axioms ← collectAxioms name
   let allowed : Array Name := #[`propext, `Classical.choice, `Quot.sound]
-  let bad := st.axioms.filter (fun a => ! allowed.contains a)
+  let bad := axioms.filter (fun a => ! allowed.contains a)
   if bad.isEmpty then
-    logInfo m!"{name}: axiom footprint ⊆ standard base ✓  ({st.axioms})"
+    logInfo m!"{name}: axiom footprint ⊆ standard base ✓  ({axioms})"
   else
     throwError m!"{name}: DISALLOWED axioms {bad} (sorryAx ⇒ fake proof)"
 
@@ -756,8 +755,8 @@ private def printCompactSpec (name : Name) (info : ConstantInfo)
       unless rules.isEmpty do
         logInfo m!"Rules: {rules.map shortSpecName}"
   -- Compact output must never hide a nonstandard axiom or `sorryAx`.
-  let (_, ax) := ((CollectAxioms.collect name).run (← getEnv)).run {}
-  let bad := ax.axioms.filter fun a => ! #[`propext, `Classical.choice, `Quot.sound].contains a
+  let axioms ← collectAxioms name
+  let bad := axioms.filter fun a => ! #[`propext, `Classical.choice, `Quot.sound].contains a
   unless bad.isEmpty do logWarning m!"Nonstandard axioms: {bad}"
 
 /-- Shared report implementation, also exercised by the regression fixtures. -/
@@ -816,9 +815,9 @@ def printSpec (name : Name) (full : Bool := false) : CommandElabM Unit := do
     unless any do logInfo "  none"
   if deps.project.contains `VeriTile.Triton.RoundingModel then
     logInfo "Semantic boundary: ABSTRACT CAST/STORE ROUNDING; this is not a concrete FP execution certificate."
-  let (_, ax) := ((CollectAxioms.collect name).run env).run {}
-  logInfo m!"Transitive axioms: {order ax.axioms}"
-  let bad := ax.axioms.filter fun a => ! #[`propext, `Classical.choice, `Quot.sound].contains a
+  let axioms ← collectAxioms name
+  logInfo m!"Transitive axioms: {order axioms}"
+  let bad := axioms.filter fun a => ! #[`propext, `Classical.choice, `Quot.sound].contains a
   unless bad.isEmpty do logWarning m!"Nonstandard axioms: {bad}"
   logInfo m!"Dependency boundary: {deps.project.size} project declarations; {deps.library.size} trusted library declarations."
   logInfo "Conservative type/proof dependency report; reachable definitions can include unexecuted branches."

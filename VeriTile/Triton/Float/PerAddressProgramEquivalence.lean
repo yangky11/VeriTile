@@ -113,7 +113,10 @@ theorem implements_of_run_safe (candidate : Variant io)
     exact coverage key active event listed missing current t ((run vals event _).trans ran)
   · intro key active
     exact trace_of_run_safe candidate run safe vals base initial key (trace key active)
-  · simpa only [OutputBinding,Variant.toPerAddressIO,observation] using values
+  · set_option backward.isDefEq.respectTransparency false in
+      with_unfolding_all
+        simpa only [OutputBinding, Variant.toPerAddressIO, observation,
+          patchOutputs] using values
 
 end Variant
 

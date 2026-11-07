@@ -1398,7 +1398,12 @@ private def toU (io : KernelIO₃ₓ₂) : UKernelIO where
   obuf := fun o => match o with
     | ⟨0, _⟩ => io.out1
     | _ => io.out2
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.in1, io.in2, io.in3, io.out1, io.out2]
+      simp
+    · change io.out2 ∈ [io.in1, io.in2, io.in3, io.out1, io.out2]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i _ p₀ _ _ => match i with

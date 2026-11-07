@@ -42,6 +42,7 @@ namespace VeriTile.Examples.AttentionForwardClosedForm
 open VeriTile.Triton
 
 set_option linter.unusedSimpArgs false
+set_option backward.isDefEq.respectTransparency false
 
 /-! ## exec-stepping helpers
 
@@ -510,7 +511,6 @@ theorem qk2_op_eval (s : BlockState) (BM BN : Nat) (hax : 1 < [BM].length.succ)
       = some (Tile.expandDim ⟨1, hax⟩ mij) := hexpN
   rw [evalOp_sub]
   simp only [evalOp_ref, hqk, hexp2, Option.bind_eq_bind, Option.bind_some]
-  rfl
 
 /-- **`l_ij` statement eval** (`tl.sum(p, 1)`): the `reduceSum` row reduction. -/
 theorem lij_op_eval (s : BlockState) (BM BN : Nat) (ptile : Tile .real [BM,BN])
@@ -532,7 +532,7 @@ theorem acc1_op_eval (s : BlockState) (BM BD : Nat) (hax : 1 < [BM].length.succ)
     rw [evalOp_expandDim]; simp [ha]
   have hexp2 : @evalOp TileDType.real [BM, 1] (Op.expandDim ⟨1, hax⟩ (Op.ref .real [BM] "alpha")) s
       = some (Tile.expandDim ⟨1, hax⟩ alpha) := hexpN
-  rw [evalOp_mul]; simp only [evalOp_ref, hacc, hexp2, Option.bind_eq_bind, Option.bind_some]; rfl
+  rw [evalOp_mul]; simp only [evalOp_ref, hacc, hexp2, Option.bind_eq_bind, Option.bind_some]
 
 /-- **`p`-to-fp16 statement eval** (`(p).to(tl.float16)`): pointwise float cast. -/
 theorem pfp16_op_eval (s : BlockState) (BM BN : Nat) (ptile : Tile .real [BM,BN])
@@ -580,7 +580,6 @@ theorem acc2_op_eval (s : BlockState) (BM BN BD : Nat)
     rfl
   rw [evalOp_add]
   simp only [evalOp_ref, hacc, hdot, Option.bind_eq_bind, Option.bind_some]
-  rfl
 
 def attention_forward_triton_surface
     (Q K V Q_scale K_scale Out : RegionName)

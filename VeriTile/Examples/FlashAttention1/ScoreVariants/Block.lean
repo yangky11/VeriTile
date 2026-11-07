@@ -1077,6 +1077,7 @@ theorem score_block_p_rowSum_eq {M Bk numKVBlocks : Nat}
     TileShape.eraseAxis, TileShape.insertAxisIndex, Tile.ofReal]
   rfl
 
+set_option backward.isDefEq.respectTransparency false in
 theorem score_block_pv_dot_eq {M D Bk numKVBlocks : Nat}
     (visible : Fin M → Fin (Bk * numKVBlocks) → Bool)
     (score : Fin M → Fin (Bk * numKVBlocks) → ℝ)
@@ -1103,6 +1104,7 @@ theorem score_block_pv_dot_eq {M D Bk numKVBlocks : Nat}
   rcases idx with ⟨i, d, u⟩
   cases u
   simp [Tile.dot, Tile.ofReal, valueBlock]
+  all_goals with_unfolding_all rfl
 
 theorem rawScoreBlockTile_eq {M D Bk numKVBlocks : Nat}
     (Q : TileIndex [M, D] → ℝ)
@@ -1120,6 +1122,7 @@ theorem rawScoreBlockTile_eq {M D Bk numKVBlocks : Nat}
   rw [StreamingAccumulator.block_scaled_data_eq Q K scale k hk i j]
   simp [scoreBlockLane, scoreLane, dotScore, allVisible, scoreBlockIndex]
 
+set_option backward.isDefEq.respectTransparency false in
 theorem score_block_lNew_tile_eq {M Bk numKVBlocks : Nat}
     (visible : Fin M → Fin (Bk * numKVBlocks) → Bool)
     (score : Fin M → Fin (Bk * numKVBlocks) → ℝ)
@@ -1144,7 +1147,9 @@ theorem score_block_lNew_tile_eq {M Bk numKVBlocks : Nat}
   simp [Tile.bop, Tile.ofReal]
   rw [lScoreBlockPartial_succ_of_lt visible score k hk idx.1]
   simp [WithBot.realSub]
+  all_goals with_unfolding_all rfl
 
+set_option backward.isDefEq.respectTransparency false in
 theorem score_block_oAcc_tile_eq {M D Bk numKVBlocks : Nat}
     (visible : Fin M → Fin (Bk * numKVBlocks) → Bool)
     (score : Fin M → Fin (Bk * numKVBlocks) → ℝ)
@@ -1174,6 +1179,7 @@ theorem score_block_oAcc_tile_eq {M D Bk numKVBlocks : Nat}
   simp [Tile.bop, Tile.expandDim, Tile.ofReal, TileShape.dropInsertedIndex]
   rw [oScoreBlockPartial_succ_of_lt visible score V k hk (i, d, PUnit.unit)]
   simp [WithBot.realSub]
+  all_goals with_unfolding_all rfl
 
 theorem softcapScoreBlock_tile_eq {M D Bk numKVBlocks : Nat}
     (softcap : ℝ)
@@ -1282,6 +1288,7 @@ theorem slidingVisibleBlock_tile_eq {M Bk numKVBlocks : Nat}
       (Tile.scalar (((window : ℝ) : WithBot ℝ)))
       =
       visibleBlock (slidingVisible window qStart) k (Nat.succ_le_iff.mpr hk) := by
+  classical
   rw [distanceBlock_tile_eq qStart k hk]
   ext idx
   obtain ⟨i, j, u⟩ := idx
@@ -1290,6 +1297,10 @@ theorem slidingVisibleBlock_tile_eq {M Bk numKVBlocks : Nat}
     Broadcast.rightIndex, ComparableDType.lt]
   unfold visibleBlock slidingVisible scoreBlockIndex
   simp [StreamingAccumulator.blockIndex]
+  -- Keep the decidability instances already attached to the two expressions.
+  -- Bool.decide_congr synthesizes fresh instances and cannot match these
+  -- dependent carrier comparisons under Lean 4.35's transparency rules.
+  apply decide_eq_decide.mpr
   constructor
   · intro hlt
     change ((((natAbsDiff (qStart + i.val) (k * Bk + j.val) : Nat) : ℝ) :
@@ -1302,6 +1313,7 @@ theorem slidingVisibleBlock_tile_eq {M Bk numKVBlocks : Nat}
     rw [WithBot.coe_lt_coe]
     exact_mod_cast hlt
 
+set_option backward.isDefEq.respectTransparency false in
 theorem alibiScoreBlock_tile_eq {M D Bk numKVBlocks : Nat}
     (qStart : Nat) (slope : ℝ)
     (Q : TileIndex [M, D] → ℝ)

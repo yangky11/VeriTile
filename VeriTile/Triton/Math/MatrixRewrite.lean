@@ -72,6 +72,6 @@ theorem div_mul_rcp (before after : List Stmt) (out : String)
   congr 2
   ext i
   cases hv : va.data i <;>
-    simp [Tile.bop, WithBot.realDiv, WithBot.realMul, hv, div_eq_mul_inv]
+    simp [Tile.bop, WithBot.realDiv, WithBot.realMul, hv, div_eq_mul_inv] <;> rfl
 
 end VeriTile.Triton.MatrixRewrite

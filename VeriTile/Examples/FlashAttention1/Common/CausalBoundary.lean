@@ -248,6 +248,7 @@ theorem block_score_mask_tile_eq {M Bk S_k : Nat} (k : Nat) :
     Broadcast.leftIndex, Broadcast.rightIndex,
     TileShape.dropInsertedIndex]
   simp
+  rfl
 
 /-- Causal mask `offs_m[:, None] >= offs_n[None, :]`, stated against the
 same `qStart` used by the recurrence. -/
@@ -291,17 +292,16 @@ theorem block_scores_tile_eq {M S_k D Bk : Nat}
   cases u
   simp only [Tile.select_data, Tile.ofReal_data]
   by_cases hLt : k * Bk + j.val < S_k
-  · rw [decide_eq_true hLt]
-    simp only [if_true]
+  · simp only [decide_eq_true hLt]
     by_cases hLe : k * Bk + j.val ≤ qStart + i.val
-    · rw [decide_eq_true hLe]
+    · simp only [decide_eq_true hLe]
       simp [FA1MathBoundary.blockIndex?_of_lt, maskedScore_of_lt_of_le,
         hLt, hLe]
       rfl
-    · rw [decide_eq_false hLe]
+    · simp only [decide_eq_false hLe]
       simp [maskedScore_of_lt_of_not_le, hLt, hLe]
       rfl
-  · rw [decide_eq_false hLt]
+  · simp only [decide_eq_false hLt]
     simp [maskedScore_of_not_lt, hLt]
     rfl
 
@@ -365,6 +365,7 @@ theorem block_lNew_tile_eq {M S_k D Bk N : Nat}
   simp [Tile.bop, Tile.ofReal]
   rw [lPartial_succ_of_lt Bk qStart Q N K scale k hk idx.1]
   simp [WithBot.realSub]
+  rfl
 
 /-- Boundary-causal loop-local `o_acc` update realizes the streaming
 `oPartial` recurrence. -/
@@ -402,6 +403,7 @@ theorem block_oAcc_tile_eq {M S_k D Bk N : Nat}
   simp [Tile.bop, Tile.expandDim, Tile.ofReal, TileShape.dropInsertedIndex]
   rw [oPartial_succ_of_lt Bk qStart Q N K V scale k hk (i, d, PUnit.unit)]
   simp [WithBot.realSub]
+  rfl
 
 /-! ### Causal boundary m-free reference sums -/
 

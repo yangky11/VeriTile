@@ -96,7 +96,7 @@ theorem ObsAgree.readMemValue_eq {s t : BlockState} (h : s.ObsAgree t)
     (dtype : TileDType) (r : RegionName) (o : Nat) :
     s.readMemValue dtype r o = t.readMemValue dtype r o := by
   cases dtype <;>
-    simp only [BlockState.readMemValue, h.readMemAs_eq, h.readMemTyped_eq]
+    simp only [BlockState.readMemValue, h.readMemAs_eq, h.readMemTyped_eq] <;> rfl
 
 end BlockState
 

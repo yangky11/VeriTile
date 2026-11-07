@@ -6,6 +6,9 @@ Split-out support for FlashAttention-1 v1 boundary proofs.
 
 import VeriTile.Examples.FlashAttention1.Boundary.Boundary
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -664,6 +667,7 @@ theorem fa1_forward_correct_4D_boundary_layout
              ⟨s.pids 0 * M + idx.1.val, by have := idx.1.isLt; omega⟩,
              idx.2.1, PUnit.unit)) := by
   intro idx hLt
+  unfold FA1Layout4D.outBlockOffset
   simpa [FA1Layout4D.boundaryKernel, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffset,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,
@@ -702,6 +706,7 @@ theorem fa1_forward_correct_4D_causal_boundary_layout
              ⟨s.pids 0 * M + idx.1.val, by have := idx.1.isLt; omega⟩,
              idx.2.1, PUnit.unit)) := by
   intro idx hLt
+  unfold FA1Layout4D.outBlockOffset
   simpa [FA1Layout4D.causalBoundaryKernel, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffset,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,
@@ -744,6 +749,7 @@ theorem fa1_forward_correct_4D_boundaryD_layout
              ⟨s.pids 0 * M + idx.1.val, hLt⟩,
              ⟨idx.2.1.val, hDIdx⟩, PUnit.unit)) := by
   intro idx hLt hDIdx
+  unfold FA1Layout4D.outBlockOffsetD
   simpa [FA1Layout4D.boundaryKernelD, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffsetD,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,
@@ -785,6 +791,7 @@ theorem fa1_forward_correct_4D_causal_boundaryD_layout
              ⟨s.pids 0 * M + idx.1.val, hLt⟩,
              ⟨idx.2.1.val, hDIdx⟩, PUnit.unit)) := by
   intro idx hLt hDIdx
+  unfold FA1Layout4D.outBlockOffsetD
   simpa [FA1Layout4D.causalBoundaryKernelD, FA1Layout4D.qOffset, FA1Layout4D.kOffset,
          FA1Layout4D.vOffset, FA1Layout4D.outBlockOffsetD,
          FA1Layout4D.qView, FA1Layout4D.kView, FA1Layout4D.vView,

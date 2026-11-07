@@ -48,6 +48,12 @@ partial def lower (convert : TSyntax `tritonExpr → MacroM (TSyntax `tritonExpr
         let value ← convert value
         stmt ← `(tritonStmt| tl.store($destination:tritonExpr, $value:tritonExpr))
     | `(tritonStmt| tl.store($destination:tritonExpr, $value:tritonExpr,
+        $mask:tritonExpr $[, $kwargs:tritonMemKwarg]*)) =>
+      if pointer aliases destination then
+        let value ← convert value
+        stmt ← `(tritonStmt| tl.store($destination:tritonExpr, $value:tritonExpr,
+          $mask:tritonExpr $[, $kwargs:tritonMemKwarg]*))
+    | `(tritonStmt| tl.store($destination:tritonExpr, $value:tritonExpr,
         $kwarg:tritonMemKwarg $[, $kwargs:tritonMemKwarg]*)) =>
       if pointer aliases destination then
         let value ← convert value

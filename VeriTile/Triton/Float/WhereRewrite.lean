@@ -53,6 +53,7 @@ set_option maxRecDepth 10000
     simp only [Option.bind_some,run,step,Structural.evalExpr]
     erw [hw]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The same guarded rewrite inside an explicit fp32 computation. Operand
 guards use the source computation context, including failed evaluations. -/
 @[spec_rule] theorem contextual_where_mul_fp32_scalar {α : Type} [Inhabited α]
@@ -95,9 +96,8 @@ guards use the source computation context, including failed evaluations. -/
           some (fun i => if vc i then va i else vb i)) = _
       rw [hm]
       rfl
-    simp only [Option.bind_some,run,step,Structural.evalExpr,evalComputeOp]
+    simp only [Option.bind_some,run,step,Structural.evalExpr,evalComputeOp_alg]
     erw [hw]
-    rfl
 
 #guard_msgs (drop info) in
 #auditModuleAxioms

@@ -141,7 +141,7 @@ theorem readMemTyped_eq (h : MemPidsEq s t) : t.readMemTyped = s.readMemTyped :=
 theorem readMemValue_eq (h : MemPidsEq s t) : t.readMemValue = s.readMemValue := by
   funext dt r o
   cases dt <;>
-    simp only [BlockState.readMemValue, h.readMemAs_eq, h.readMemTyped_eq]
+    simp only [BlockState.readMemValue, h.readMemAs_eq, h.readMemTyped_eq] <;> rfl
 
 /-! ### Congruence under the register/memory writes -/
 

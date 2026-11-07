@@ -817,6 +817,7 @@ theorem block_mBlock_data_eq {M D Bk N : Nat} (hBk : 0 < Bk)
   unfold Tile.reduceMax
   simp [Tile.reduceMaxDrop, TileShape.axisDim, TileShape.eraseAxis,
     TileShape.insertAxisIndex, hBk, Tile.ofReal]
+  congr 1
   funext idx
   change (((Finset.univ : Finset (Fin Bk)).sup'
       (by exact ⟨⟨0, hBk⟩, Finset.mem_univ _⟩)
@@ -825,8 +826,8 @@ theorem block_mBlock_data_eq {M D Bk N : Nat} (hBk : 0 < Bk)
     (Finset.univ : Finset (Fin Bk)).sup
       (fun j => ((scaledScore Q K scale idx.1
         (blockIndex Bk N n (Nat.succ_le_iff.mpr hn) j) : ℝ) : WithBot ℝ))
-  rw [← WithBot.sup'_coe]
-  rw [Finset.sup'_eq_sup]
+  erw [← WithBot.sup'_coe]
+  erw [Finset.sup'_eq_sup]
 
 /-- Data form of the loop-local unnormalized probabilities
 `p = exp(scores - m_new[:, None])`. -/

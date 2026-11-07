@@ -6,6 +6,9 @@ Forward correctness and readout surfaces for score-variant FA-1 kernels.
 
 import VeriTile.Examples.FlashAttention1.ScoreVariants.Loop
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton

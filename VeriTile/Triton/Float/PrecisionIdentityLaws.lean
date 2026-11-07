@@ -65,7 +65,6 @@ def accWidenFp32Value {α : Type} (M : Algebra α) (a b c : α) : α :=
 @[simp] theorem eval_fp32Copy {α : Type} [Inhabited α] (M : Algebra α)
     (p : Option ComputeDType) (e : Op .fp32 []) (s : State α) :
     evalOp (sourceCopies M) p (fp32Copy e) s = evalOp (sourceCopies M) p e s := by
-  rw [fp32Copy, evalOp_unfold]
   change (evalOp (sourceCopies M) p e s).bind (fun v => some (fun i => v i)) =
     evalOp (sourceCopies M) p e s
   cases evalOp (sourceCopies M) p e s <;> rfl
@@ -81,9 +80,6 @@ theorem eval_fp32Add {α : Type} [Inhabited α] (M : Algebra α)
       let av ← evalOp (sourceCopies M) (some .fp32) a s
       let bv ← evalOp (sourceCopies M) (some .fp32) b s
       pure (bop (M.binary (some .fp32) .fp32 .add) Broadcast.nil av bv)) := by
-  rw [fp32Add, evalOp_unfold]
-  change evalOp (sourceCopies M) (some .fp32) (.add .fp32 .nil a b) s = _
-  rw [evalOp_unfold]
   rfl
 
 theorem eval_roundIdemFp32 {α : Type} [Inhabited α] (M : Algebra α)
@@ -190,7 +186,6 @@ theorem eval_widenBf16 {α : Type} [Inhabited α] (M : Algebra α)
     (p : Option ComputeDType) (e : Op .bf16 []) (s : State α) :
     evalOp (sourceCopies M) p (widenBf16 e) s =
       (evalOp (sourceCopies M) p e s).map (fun v i => M.cast p .bf16 .fp32 (v i)) := by
-  rw [widenBf16, evalOp_unfold]
   change (evalOp (sourceCopies M) p e s).bind
     (fun v => some (fun i => M.cast p .bf16 .fp32 (v i))) = _
   cases evalOp (sourceCopies M) p e s <;> rfl
@@ -199,7 +194,6 @@ theorem eval_narrowBf16 {α : Type} [Inhabited α] (M : Algebra α)
     (p : Option ComputeDType) (e : Op .fp32 []) (s : State α) :
     evalOp (sourceCopies M) p (narrowBf16 e) s =
       (evalOp (sourceCopies M) p e s).map (fun v i => M.cast p .fp32 .bf16 (v i)) := by
-  rw [narrowBf16, evalOp_unfold]
   change (evalOp (sourceCopies M) p e s).bind
     (fun v => some (fun i => M.cast p .fp32 .bf16 (v i))) = _
   cases evalOp (sourceCopies M) p e s <;> rfl

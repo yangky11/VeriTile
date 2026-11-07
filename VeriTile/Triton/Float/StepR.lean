@@ -68,7 +68,7 @@ def writeMemTypedR (R : RoundingModel) (s : BlockState) (dtype : TileDType)
     (region : RegionName) (offset : Nat) (v : TileCarrier dtype) :
     s.writeMemTypedR RoundingModel.triv dtype region offset v =
       s.writeMemTyped dtype region offset v := by
-  cases dtype <;> simp [writeMemTypedR, writeMemTyped]
+  cases dtype <;> rfl
 
 end BlockState
 
@@ -769,7 +769,8 @@ theorem readMemValue_bf16_of_cell {s : BlockState} {region : RegionName}
     {offset : Nat} {z : ℝ}
     (h : s.mem region offset = MemCell.of .bf16 (some z : WithBot ℝ)) :
     s.readMemValue .bf16 region offset = (some z : WithBot ℝ) := by
-  simp [readMemValue, readMemAs, h, FloatDType.storeValue, FloatDType.ofReal]
+  simp only [readMemValue, readMemAs, h]
+  rfl
 
 /-- Tag-exact readback of a stored fp16 cell through `readMemAs .fp16` (the
 `readMemAs` sibling of `readMemValue_bf16_of_cell`): the `storeValue ∘ ofReal`
@@ -779,7 +780,8 @@ theorem readMemAs_fp16_of_cell {s : BlockState} {region : RegionName}
     (h : s.mem region offset
       = MemCell.of FloatDType.fp16.toTileDType (FloatDType.fp16.ofReal x)) :
     s.readMemAs .fp16 region offset = FloatDType.fp16.ofReal x := by
-  simp [readMemAs, h, FloatDType.storeValue, FloatDType.ofReal]
+  simp only [readMemAs, h]
+  rfl
 
 /-- bf16 sibling of `readMemAs_fp16_of_cell` (verbatim-isomorphic proof). -/
 theorem readMemAs_bf16_of_cell {s : BlockState} {region : RegionName}
@@ -787,7 +789,8 @@ theorem readMemAs_bf16_of_cell {s : BlockState} {region : RegionName}
     (h : s.mem region offset
       = MemCell.of FloatDType.bf16.toTileDType (FloatDType.bf16.ofReal x)) :
     s.readMemAs .bf16 region offset = FloatDType.bf16.ofReal x := by
-  simp [readMemAs, h, FloatDType.storeValue, FloatDType.ofReal]
+  simp only [readMemAs, h]
+  rfl
 
 /-- fp32 sibling of `readMemAs_fp16_of_cell` (verbatim-isomorphic proof). -/
 theorem readMemAs_fp32_of_cell {s : BlockState} {region : RegionName}
@@ -795,7 +798,8 @@ theorem readMemAs_fp32_of_cell {s : BlockState} {region : RegionName}
     (h : s.mem region offset
       = MemCell.of FloatDType.fp32.toTileDType (FloatDType.fp32.ofReal x)) :
     s.readMemAs .fp32 region offset = FloatDType.fp32.ofReal x := by
-  simp [readMemAs, h, FloatDType.storeValue, FloatDType.ofReal]
+  simp only [readMemAs, h]
+  rfl
 
 /-- A `P`-masked `writeMemAsR` scatter preserves every same-region offset not
 hit by an active lane (the `Prop`-mask twin of

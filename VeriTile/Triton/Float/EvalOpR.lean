@@ -485,7 +485,9 @@ theorem evalOpR_triv : ∀ {dtype : TileDType} {shape : TileShape} (op : Op dtyp
   | _, _, .argMax _ a, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
   | _, _, .argMaxInt _ a, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
   | _, _, .argMaxTyped _ _ a _, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
-  | _, _, .indexedMaxValue _ _ a, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
+  | _, _, .indexedMaxValue _ _ a, s => by
+      simp only [evalOpR, evalOp, evalOpR_triv a s]
+      rfl
   | _, _, .argMin _ a, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
   | _, _, .sort _ a, s => by simp only [evalOpR, evalOp, evalOpR_triv a s]
   | _, _, .dot a b _, s => by

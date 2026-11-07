@@ -58,6 +58,7 @@ def Atom.rhs : Atom → GuardedFragment
     | .exp_zero _ => .const 1
     | .exp_neg_inf_sub _ => .const 0), .real, none⟩
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The original FP32 special-value fragments execute identically in the fixed
 documented primitive profile. The proof includes their actual assignments. -/
 theorem strict_exp_zero (backend : Backend) :
@@ -66,11 +67,12 @@ theorem strict_exp_zero (backend : Backend) :
   intro rest s _
   cases backend <;>
     simp [Atom.lhs, Atom.rhs, Backend.exp, fragment, fragmentAlgebra,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, Function.comp_def,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, Function.comp_def,
       Software.strictFP32, Software.scalarFP32, Software.fp32Context,
       ExponentialExact.tl_exp_zero, ExponentialExact.libdevice_exp_zero,
       ExponentialExact.positiveOne, scalarOutput, toFloat, State.setReg_same]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The finite guard is read from the scalar register domain; it includes
 signed zero and subnormal inputs, and excludes infinities and NaNs. -/
 theorem strict_exp_neg_inf_sub (backend : Backend) :
@@ -85,7 +87,7 @@ theorem strict_exp_neg_inf_sub (backend : Backend) :
     exact (ExponentialExact.finite_iff_toRat _).mpr hf
   cases backend <;>
     simp [Atom.lhs, Atom.rhs, Backend.exp, fragment, fragmentAlgebra, minus, ref,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, numeric,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, numeric,
       Software.strictFP32, Software.scalarFP32, Software.fp32Context,
       hv, bop, Function.comp_def, ExponentialExact.tl_exp_neg_inf_sub,
       ExponentialExact.libdevice_exp_neg_inf_sub, hfinite,

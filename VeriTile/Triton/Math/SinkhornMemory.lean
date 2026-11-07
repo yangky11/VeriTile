@@ -6,6 +6,7 @@ registers and all memory are preserved through every finite iteration. -/
 namespace VeriTile.Triton.LogSinkhorn
 open TraceProofs
 
+set_option backward.isDefEq.respectTransparency false in
 private theorem body_safe (A B : Nat) (bounds : RegionBounds) (s : BlockState) :
     Stmt.TraceSafeList bounds (body A B) s := by
   unfold body

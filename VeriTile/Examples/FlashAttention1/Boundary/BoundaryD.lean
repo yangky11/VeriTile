@@ -6,6 +6,9 @@ Split-out support for FlashAttention-1 v1 boundary proofs.
 
 import VeriTile.Examples.FlashAttention1.Boundary.Core
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -49,13 +52,6 @@ private theorem fa1_boundaryD_eval_k_ptrs
   simp [Option.bind, option_match_bind, Tile.bop, Tile.expandDim,
     NumericDType.add, NumericDType.mul,
     hk_base, hoffs_d, hn, hd]
-  funext idx
-  cases idx with
-  | mk i rest =>
-    cases rest with
-    | mk j rest2 =>
-      cases rest2
-      rfl
 
 private theorem fa1_boundaryD_eval_v_ptrs
     (s : BlockState) (Bk Bd k batch headIdx sVB sVH sVN sVD : Nat)
@@ -100,13 +96,6 @@ private theorem fa1_boundaryD_eval_v_ptrs
   simp [Option.bind, option_match_bind, Tile.bop, Tile.expandDim,
     NumericDType.add, NumericDType.mul,
     hv_base, hoffs_d, hn, hd]
-  funext idx
-  cases idx with
-  | mk i rest =>
-    cases rest with
-    | mk j rest2 =>
-      cases rest2
-      rfl
 
 set_option maxHeartbeats 5000000 in
 /-- D-tail boundary strided loop step. This is the D-tail analogue of
@@ -179,15 +168,15 @@ theorem fa1_step_strided_boundaryD
         match FA1MathBoundary.blockIndex? S_k Bk k idx.1 with
         | some j => Kp (j, idx.2.1, PUnit.unit)
         | none => 0) := by
-    simpa [Kp] using
-      fa1_block_load_tile_eq_strided_boundaryD kReg s kBase sKN sKD K hK k
+    convert fa1_block_load_tile_eq_strided_boundaryD kReg s kBase sKN sKD K hK k using 1 <;>
+      ext idx <;> simp [Kp, kLoaded]
   have hV_loaded_eq : vLoaded =
       Tile.ofReal (fun idx : TileIndex [Bk, Bd] =>
         match FA1MathBoundary.blockIndex? S_k Bk k idx.1 with
         | some j => Vp (j, idx.2.1, PUnit.unit)
         | none => 0) := by
-    simpa [Vp] using
-      fa1_block_load_tile_eq_strided_boundaryD vReg s vBase sVN sVD V hV k
+    convert fa1_block_load_tile_eq_strided_boundaryD vReg s vBase sVN sVD V hV k using 1 <;>
+      ext idx <;> simp [Vp, vLoaded]
   let scoresRaw : Tile .real [M, Bk] :=
     ⟨fun idx : TileIndex [M, Bk] =>
       Option.map (fun a => a * scale)
@@ -592,7 +581,7 @@ theorem fa1_step_strided_boundaryD
     simp only [evalOp_lt, evalOp_add, evalOp_mul, evalOp_constNat,
       Option.bind_eq_bind, Option.bind_some]
     erw [h_offsM_s9, h_offsN_s9]
-    simpa [Option.bind, Tile.bop, Tile.cop, Tile.expandDim,
+    simpa [offsN, Tile.vec, Option.bind, Tile.bop, Tile.cop, Tile.expandDim,
       TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul,
       ComparableDType.lt] using congrArg some h_scoreMask_raw
   have h_scoreMask_eval_exp :
@@ -621,7 +610,7 @@ theorem fa1_step_strided_boundaryD
             "v" .real [Bk, Bd] vLoaded).setReg
             "scores_raw" .real [M, Bk] scoresRaw) =
         some scoreMask := by
-    simpa [s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
+    simpa [Tile.vec, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
       kvSeqMask, kvDMask, kvMask, kLoaded, vLoaded, scoresRaw, kBase, vBase]
       using h_scoreMask_eval
   have h_scores_raw :
@@ -684,8 +673,6 @@ theorem fa1_step_strided_boundaryD
     simp [s11, s10]
     simp [Tile.reduceMaxDrop, TileShape.axisDim, TileShape.eraseAxis,
       TileShape.insertAxisIndex, TileShape.dropInsertedIndex, hBk, mBlock]
-    funext idx
-    rfl
   have h_kvSeqMask_eval :
       evalOp
         (Op.lt ComparableDType.nat Broadcast.scalarR
@@ -747,7 +734,7 @@ theorem fa1_step_strided_boundaryD
               batch * sVB + headIdx * sVH + (k * Bk + idx.1.val) * sVN
                 + idx.2.1.val * sVD } : Tile .nat [Bk, Bd])) =
         some kvSeqMask := by
-    simpa [s3, s2, s1, s0, offsN, kPtrs, vPtrs, kBase, vBase] using h_kvSeqMask_eval
+    simpa [Tile.vec, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kBase, vBase] using h_kvSeqMask_eval
   have h_kvDMask_eval_exp :
       evalOp
         (Op.lt ComparableDType.nat Broadcast.scalarR
@@ -769,7 +756,7 @@ theorem fa1_step_strided_boundaryD
                 + idx.2.1.val * sVD } : Tile .nat [Bk, Bd])).setReg
             "kv_seq_mask" .bool [Bk, Bd] kvSeqMask) =
         some kvDMask := by
-    simpa [s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kBase, vBase]
+    simpa [Tile.vec, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kBase, vBase]
       using h_kvDMask_eval
   have h_kvMask_eval_exp :
       evalOp
@@ -789,7 +776,7 @@ theorem fa1_step_strided_boundaryD
             "kv_seq_mask" .bool [Bk, Bd] kvSeqMask).setReg
             "kv_d_mask" .bool [Bk, Bd] kvDMask) =
         some kvMask := by
-    simpa [s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kvDMask,
+    simpa [Tile.vec, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kvDMask,
       kBase, vBase] using h_kvMask_eval
   have h_kLoaded_eval :
       evalOp
@@ -854,7 +841,6 @@ theorem fa1_step_strided_boundaryD
     simp [evalOp_expandDim, evalOp_expandDim_ref, evalOp_ref,
       s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
       p, mNew, Tile.bop, Tile.uop, Tile.expandDim, NumericDType.sub]
-    rfl
   have h_lNew_eval :
       evalOp
         (Op.add .real (Broadcast.consSame Broadcast.nil)
@@ -868,12 +854,6 @@ theorem fa1_step_strided_boundaryD
       lNew, alpha, p, Qp, Kp, Tile.bop, Tile.reduceSum, Tile.reduceSumDrop,
       TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
       hBk, NumericDType.add, NumericDType.mul, hl]
-    unfold evalOp
-    simp [s15, lNew, alpha, p, Qp, Kp, Tile.bop, Tile.reduceSum, Tile.reduceSumDrop,
-      TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
-      hBk, NumericDType.add, NumericDType.mul, WithBot.realAdd, WithBot.realMul]
-    funext idx
-    rfl
   have h_oNew_eval :
       evalOp
         (Op.add .real (Broadcast.consSame (Broadcast.consSame Broadcast.nil))
@@ -887,10 +867,6 @@ theorem fa1_step_strided_boundaryD
       s16, s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
       oNew, alpha, p, Qp, Kp, Vp, Tile.bop, Tile.dot, Tile.expandDim,
       TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul, ho]
-    unfold evalOp
-    simp [s16, oNew, alpha, p, Qp, Kp, Vp, Tile.bop, Tile.dot, Tile.expandDim,
-      TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul]
-    rfl
   refine ⟨s', ?_, ?_⟩
   · simp only [fa1LoopBodyStridedBoundaryD, stepStmts, stepStmt]
     rw [h_offsN_eval]
@@ -1284,15 +1260,15 @@ theorem fa1_step_strided_causal_boundaryD
         match FA1MathBoundary.blockIndex? S_k Bk k idx.1 with
         | some j => Kp (j, idx.2.1, PUnit.unit)
         | none => 0) := by
-    simpa [Kp] using
-      fa1_block_load_tile_eq_strided_boundaryD kReg s kBase sKN sKD K hK k
+    convert fa1_block_load_tile_eq_strided_boundaryD kReg s kBase sKN sKD K hK k using 1 <;>
+      ext idx <;> simp [Kp, kLoaded]
   have hV_loaded_eq : vLoaded =
       Tile.ofReal (fun idx : TileIndex [Bk, Bd] =>
         match FA1MathBoundary.blockIndex? S_k Bk k idx.1 with
         | some j => Vp (j, idx.2.1, PUnit.unit)
         | none => 0) := by
-    simpa [Vp] using
-      fa1_block_load_tile_eq_strided_boundaryD vReg s vBase sVN sVD V hV k
+    convert fa1_block_load_tile_eq_strided_boundaryD vReg s vBase sVN sVD V hV k using 1 <;>
+      ext idx <;> simp [Vp, vLoaded]
   let scoresRaw : Tile .real [M, Bk] :=
     ⟨fun idx : TileIndex [M, Bk] =>
       Option.map (fun a => a * scale)
@@ -1786,7 +1762,7 @@ theorem fa1_step_strided_causal_boundaryD
               batch * sVB + headIdx * sVH + (k * Bk + idx.1.val) * sVN
                 + idx.2.1.val * sVD } : Tile .nat [Bk, Bd])) =
         some kvSeqMask := by
-    simpa [s3, s2, s1, s0, offsN, kPtrs, vPtrs, kBase, vBase] using h_kvSeqMask_eval
+    simpa [Tile.vec, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kBase, vBase] using h_kvSeqMask_eval
   have h_kvDMask_eval_exp :
       evalOp
         (Op.lt ComparableDType.nat Broadcast.scalarR
@@ -1808,7 +1784,7 @@ theorem fa1_step_strided_causal_boundaryD
                 + idx.2.1.val * sVD } : Tile .nat [Bk, Bd])).setReg
             "kv_seq_mask" .bool [Bk, Bd] kvSeqMask) =
         some kvDMask := by
-    simpa [s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kBase, vBase]
+    simpa [Tile.vec, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kBase, vBase]
       using h_kvDMask_eval
   have h_kvMask_eval_exp :
       evalOp
@@ -1828,7 +1804,7 @@ theorem fa1_step_strided_causal_boundaryD
             "kv_seq_mask" .bool [Bk, Bd] kvSeqMask).setReg
             "kv_d_mask" .bool [Bk, Bd] kvDMask) =
         some kvMask := by
-    simpa [s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kvDMask,
+    simpa [Tile.vec, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs, kvSeqMask, kvDMask,
       kBase, vBase] using h_kvMask_eval
   have h_kLoaded_eval :
       evalOp
@@ -1852,13 +1828,11 @@ theorem fa1_step_strided_causal_boundaryD
           (Op.expandDim ⟨1, by simp⟩ (Op.ref .nat [M] "offs_m"))
           (Op.expandDim ⟨0, by simp⟩ (Op.ref .nat [Bk] "offs_n"))) s9 =
         some causal := by
-    simp only [evalOp, Option.bind_eq_bind, Option.bind_some]
+    generalize hs9 : s9 = causalState at h_offsM_s9 h_offsN_s9 ⊢
+    rw [evalOp]
     erw [h_offsM_s9, h_offsN_s9]
     simp [Option.bind, qStart, offsN, causal, Tile.cop, Tile.expandDim,
       TileShape.dropInsertedIndex, ComparableDType.ge]
-    ext idx
-    rcases idx with ⟨i, j, ⟨⟩⟩
-    rfl
   have h_causal_eval_exp :
       evalOp
         (Op.ge ComparableDType.nat (Broadcast.consR (Broadcast.consL Broadcast.nil))
@@ -1881,7 +1855,7 @@ theorem fa1_step_strided_causal_boundaryD
             "v" .real [Bk, Bd] vLoaded).setReg
             "scores_raw" .real [M, Bk] scoresRaw) =
         some causal := by
-    simpa [s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
+    simpa [Tile.vec, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
       kvSeqMask, kvDMask, kvMask, kLoaded, vLoaded, scoresRaw, kBase, vBase]
       using h_causal_eval
   have h_causalScores_eval_exp :
@@ -1930,7 +1904,7 @@ theorem fa1_step_strided_causal_boundaryD
     simp only [evalOp_lt, evalOp_add, evalOp_mul, evalOp_constNat,
       Option.bind_eq_bind, Option.bind_some]
     erw [h_offsM_s11, h_offsN_s11]
-    simpa [Option.bind, Tile.bop, Tile.cop, Tile.expandDim,
+    simpa [offsN, Tile.vec, Option.bind, Tile.bop, Tile.cop, Tile.expandDim,
       TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul,
       ComparableDType.lt] using congrArg some h_scoreMask_raw
   have h_scoreMask_eval_exp :
@@ -1961,7 +1935,7 @@ theorem fa1_step_strided_causal_boundaryD
             "causal" .bool [M, Bk] causal).setReg
             "causal_scores" .real [M, Bk] causalScores) =
         some scoreMask := by
-    simpa [s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
+    simpa [Tile.vec, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, offsN, kPtrs, vPtrs,
       kvSeqMask, kvDMask, kvMask, kLoaded, vLoaded, scoresRaw, causal, causalScores,
       kBase, vBase] using h_scoreMask_eval
   have h_scores_eval_exp :
@@ -1999,8 +1973,6 @@ theorem fa1_step_strided_causal_boundaryD
     simp [s13, s12]
     simp [Tile.reduceMaxDrop, TileShape.axisDim, TileShape.eraseAxis,
       TileShape.insertAxisIndex, TileShape.dropInsertedIndex, hBk, mBlock]
-    funext idx
-    rfl
   have h_offsN_step :
       stepStmt
         (Stmt.assign .nat [Bk] "offs_n"
@@ -2049,7 +2021,6 @@ theorem fa1_step_strided_causal_boundaryD
       s16, s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
       p, mNew, Qp, Kp, qStart, Tile.bop, Tile.uop, Tile.expandDim, NumericDType.sub,
       WithBot.realSub]
-    rfl
   have h_lNew_eval :
       evalOp
         (Op.add .real (Broadcast.consSame Broadcast.nil)
@@ -2063,12 +2034,6 @@ theorem fa1_step_strided_causal_boundaryD
       lNew, alpha, p, Qp, Kp, qStart, Tile.bop, Tile.reduceSum, Tile.reduceSumDrop,
       TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
       hBk, NumericDType.add, NumericDType.mul, hl]
-    unfold evalOp
-    simp [s17, lNew, alpha, p, Qp, Kp, qStart, Tile.bop, Tile.reduceSum, Tile.reduceSumDrop,
-      TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
-      hBk, NumericDType.add, NumericDType.mul, WithBot.realAdd, WithBot.realMul]
-    funext idx
-    rfl
   have h_oNew_eval :
       evalOp
         (Op.add .real (Broadcast.consSame (Broadcast.consSame Broadcast.nil))
@@ -2082,10 +2047,6 @@ theorem fa1_step_strided_causal_boundaryD
       s18, s17, s16, s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
       oNew, alpha, p, Qp, Kp, Vp, qStart, Tile.bop, Tile.dot, Tile.expandDim,
       TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul, ho]
-    unfold evalOp
-    simp [s18, oNew, alpha, p, Qp, Kp, Vp, qStart, Tile.bop, Tile.dot, Tile.expandDim,
-      TileShape.dropInsertedIndex, NumericDType.add, NumericDType.mul]
-    rfl
   refine ⟨s', ?_, ?_⟩
   · simp only [fa1LoopBodyStridedCausalBoundaryD, stepStmts, stepStmt]
     rw [h_offsN_eval]

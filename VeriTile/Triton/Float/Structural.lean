@@ -867,6 +867,13 @@ noncomputable def evalComputeOp {α : Type} [Inhabited α] (M : Algebra α) :
       return fun i => M.fp32Bits ⟨BitVec.ofNat 32 (v i)⟩
   | .bitcast .., _ => none
 
+-- This equation avoids generating unrelated dependent bitcast equations when
+-- a proof only evaluates an algorithmic expression.
+theorem evalComputeOp_alg {α : Type} [Inhabited α] (M : Algebra α)
+    (d : ComputeDType) (e : Op d.eraseDType shape) (s : State α) :
+    evalComputeOp M (.alg d e) s = evalOp M (some d) e s := by
+  rfl
+
 noncomputable def evalExpr {α : Type} [Inhabited α] (M : Algebra α) :
     ComputeExpr dtype shape → State α → Option (Values α dtype shape)
   | .alg e, s => evalOp M none e s
@@ -1101,6 +1108,7 @@ theorem exec_seq_cons {α : Type} [Inhabited α] (M : Algebra α)
   cases k
   simp only [ComputeKernel.seq, ComputeKernel.surfaceBody, List.flatMap_cons,
     exec, run_append]
+  rfl
 
 theorem exec_seq_nil {α : Type} [Inhabited α] (M : Algebra α)
     (ins outs : List RegionName) (s : State α) :

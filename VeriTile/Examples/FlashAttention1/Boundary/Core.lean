@@ -10,6 +10,9 @@ namespace VeriTile.Examples
 
 open VeriTile.Triton
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 /-- Boundary-masked strided initialization stage. The Q register is loaded
 with the same mask as the v1 kernel: in-bounds rows come from memory, while
 out-of-bounds rows are the explicit `other=0`. After that, the loop invariant
@@ -95,10 +98,6 @@ theorem fa1_preLoop_correct_strided_boundary
   · simp [fa1PreLoopStridedBoundary, stepStmts, stepStmt, evalOp,
       Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
       ComparableDType.lt, Option.bind, TileShape.dropInsertedIndex, Tile.vec, Tile.ofReal, qPtrs, qMask, qLoaded, qBase, s0]
-    unfold evalOp
-    simp [Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
-      ComparableDType.lt, Option.bind, TileShape.dropInsertedIndex, Tile.vec, Tile.ofReal,
-      qPtrs, qMask, qLoaded, qBase, s0]
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp [s0]
     · simp [s0]
@@ -224,10 +223,6 @@ theorem fa1_preLoop_correct_strided_boundaryD
   refine ⟨s0, ?_, ?_⟩
   · simp [fa1PreLoopStridedBoundaryD, stepStmts, stepStmt, evalOp,
       Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
-      ComparableDType.lt, Option.bind, TileShape.dropInsertedIndex, Tile.vec, Tile.ofReal,
-      qPtrs, qSeqMask, qDMask, qMask, qLoaded, qBase, s0]
-    unfold evalOp
-    simp [Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
       ComparableDType.lt, Option.bind, TileShape.dropInsertedIndex, Tile.vec, Tile.ofReal,
       qPtrs, qSeqMask, qDMask, qMask, qLoaded, qBase, s0]
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -411,10 +406,6 @@ theorem fa1_postLoop_correct_strided_boundary_raw
         Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
         NumericDType.div, ComparableDType.lt, Option.bind,
         TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hoffs_m, hoffs_d, hl, ho, ho_base, Tile.bop, Tile.cop, Tile.expandDim,
-    NumericDType.add, NumericDType.mul, NumericDType.div, ComparableDType.lt, Option.bind,
-    TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
         + idx.1.val * sOM + idx.2.1.val * sOD =
       batch * sOB + headIdx * sOH
@@ -475,10 +466,6 @@ theorem fa1_postLoop_correct_strided_causal_boundary_raw
         Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
         NumericDType.div, ComparableDType.lt, Option.bind,
         TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hoffs_m, hoffs_d, hl, ho, ho_base, Tile.bop, Tile.cop, Tile.expandDim,
-    NumericDType.add, NumericDType.mul, NumericDType.div, ComparableDType.lt, Option.bind,
-    TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
         + idx.1.val * sOM + idx.2.1.val * sOD =
       batch * sOB + headIdx * sOH
@@ -560,10 +547,6 @@ theorem fa1_postLoop_correct_strided_boundaryD_raw
         Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
         NumericDType.div, ComparableDType.lt, Option.bind,
         TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hoffs_m, hoffs_d, hl, ho, ho_base, Tile.bop, Tile.cop, Tile.expandDim,
-    NumericDType.add, NumericDType.mul, NumericDType.div, ComparableDType.lt, Option.bind,
-    TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
         + idx.1.val * sOM + idx.2.1.val * sOD =
       batch * sOB + headIdx * sOH
@@ -644,10 +627,6 @@ theorem fa1_postLoop_correct_strided_causal_boundaryD_raw
         Tile.bop, Tile.cop, Tile.expandDim, NumericDType.add, NumericDType.mul,
         NumericDType.div, ComparableDType.lt, Option.bind,
         TileShape.dropInsertedIndex]
-  unfold evalOp
-  simp [hoffs_m, hoffs_d, hl, ho, ho_base, Tile.bop, Tile.cop, Tile.expandDim,
-    NumericDType.add, NumericDType.mul, NumericDType.div, ComparableDType.lt, Option.bind,
-    TileShape.dropInsertedIndex]
   rw [show batch * sOB + headIdx * sOH + qb * M * sOM
         + idx.1.val * sOM + idx.2.1.val * sOD =
       batch * sOB + headIdx * sOH

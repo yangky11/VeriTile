@@ -6,6 +6,9 @@ Split-out support for FlashAttention-1 v0/full-tile proofs.
 
 import VeriTile.Examples.FlashAttention1.Core.PreLoop
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -263,7 +266,7 @@ theorem fa1_step
           =
           some (StreamingAccumulator.alphaPartial Q numKVBlocks K scale k i) := by
       intro i
-      simpa [WithBot.realSub] using
+      simpa only [WithBot.realSub, ← WithBot.some_eq_coe] using
         StreamingAccumulator.alphaPartial_toWithBot Q numKVBlocks K scale k i
     have hPDataStep : ∀ (i : Fin M) (j : Fin Bk),
         WithBot.realExp
@@ -320,17 +323,7 @@ theorem fa1_step
         s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
         p, scores, mNew, Tile.bop, Tile.uop, Tile.ofReal, Tile.expandDim, NumericDType.sub,
         hmNewDataStep, hPDataStep]
-      change some (s9.setReg "p" .real [M, Bk]
-          ({ data := fun idx : TileIndex [M, Bk] =>
-            WithBot.realExp
-              (Option.map
-                (fun b => StreamingAccumulator.scaledScore Q K scale idx.1
-                  (StreamingAccumulator.blockIndex Bk numKVBlocks k
-                    (Nat.succ_le_iff.mpr hk) idx.2.1) - b)
-                (StreamingAccumulator.mPartial Bk Q numKVBlocks K scale (k + 1) idx.1)) } :
-            Tile .real [M, Bk])) =
-        some (s9.setReg "p" .real [M, Bk] p)
-      apply congrArg (fun t => some (s9.setReg "p" .real [M, Bk] t))
+      congr 1
       ext idx
       simpa [p, Tile.ofReal] using hPDataStep idx.1 idx.2.1
     have h11 :
@@ -347,12 +340,10 @@ theorem fa1_step
         lNew, alpha, p, Tile.bop, Tile.ofReal, Tile.reduceSum, Tile.reduceSumDrop,
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, hl]
-      unfold evalOp
       simp [s11, lNew, alpha, p, Tile.bop, Tile.ofReal, Tile.reduceSum, Tile.reduceSumDrop,
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, WithBot.realAdd, WithBot.realMul,
         StreamingAccumulator.lPartial_succ_of_lt Q numKVBlocks K scale k hk]
-      rfl
     have h12 :
         stepStmt
           (Stmt.assign .real [M, D] "o_acc"
@@ -368,10 +359,8 @@ theorem fa1_step
           oNew, alpha, p, vTile, Tile.bop, Tile.ofReal, Tile.dot,
           Tile.expandDim, TileShape.dropInsertedIndex, NumericDType.add,
           NumericDType.mul, ho]
-        unfold evalOp
         simp [Tile.dot, Tile.expandDim, TileShape.dropInsertedIndex,
           StreamingAccumulator.oPartial_succ_of_lt Q numKVBlocks K V scale k hk]
-        simp only [Option.bind, Option.map]
     have h13 :
         stepStmt
           (Stmt.assign .real [M] "m_i" (Op.ref .real [M] "m_new")) s12 =
@@ -478,7 +467,7 @@ theorem fa1_step
           =
           some (StreamingAccumulator.alphaPartial Q numKVBlocks K scale k i) := by
       intro i
-      simpa [WithBot.realSub] using
+      simpa only [WithBot.realSub, ← WithBot.some_eq_coe] using
         StreamingAccumulator.alphaPartial_toWithBot Q numKVBlocks K scale k i
     have hPData : ∀ (i : Fin M) (j : Fin Bk),
         WithBot.realExp
@@ -1147,7 +1136,7 @@ theorem fa1_step_strided
           =
           some (StreamingAccumulator.alphaPartial Q numKVBlocks K scale k i) := by
       intro i
-      simpa [WithBot.realSub] using
+      simpa only [WithBot.realSub, ← WithBot.some_eq_coe] using
         StreamingAccumulator.alphaPartial_toWithBot Q numKVBlocks K scale k i
     have hPDataStep : ∀ (i : Fin M) (j : Fin Bk),
         WithBot.realExp
@@ -1204,17 +1193,7 @@ theorem fa1_step_strided
         s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
         p, scores, mNew, Tile.bop, Tile.uop, Tile.ofReal, Tile.expandDim, NumericDType.sub,
         hmNewDataStep, hPDataStep]
-      change some (s9.setReg "p" .real [M, Bk]
-          ({ data := fun idx : TileIndex [M, Bk] =>
-            WithBot.realExp
-              (Option.map
-                (fun b => StreamingAccumulator.scaledScore Q K scale idx.1
-                  (StreamingAccumulator.blockIndex Bk numKVBlocks k
-                    (Nat.succ_le_iff.mpr hk) idx.2.1) - b)
-                (StreamingAccumulator.mPartial Bk Q numKVBlocks K scale (k + 1) idx.1)) } :
-            Tile .real [M, Bk])) =
-        some (s9.setReg "p" .real [M, Bk] p)
-      apply congrArg (fun t => some (s9.setReg "p" .real [M, Bk] t))
+      congr 1
       ext idx
       simpa [p, Tile.ofReal] using hPDataStep idx.1 idx.2.1
     have h11 :
@@ -1231,12 +1210,10 @@ theorem fa1_step_strided
         lNew, alpha, p, Tile.bop, Tile.ofReal, Tile.reduceSum, Tile.reduceSumDrop,
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, hl]
-      unfold evalOp
       simp [s11, lNew, alpha, p, Tile.bop, Tile.ofReal, Tile.reduceSum, Tile.reduceSumDrop,
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, WithBot.realAdd, WithBot.realMul,
         StreamingAccumulator.lPartial_succ_of_lt Q numKVBlocks K scale k hk]
-      rfl
     have h12 :
         stepStmt
           (Stmt.assign .real [M, D] "o_acc"
@@ -1252,10 +1229,8 @@ theorem fa1_step_strided
         oNew, alpha, p, vTile, Tile.bop, Tile.ofReal, Tile.dot,
         Tile.expandDim, TileShape.dropInsertedIndex, NumericDType.add,
         NumericDType.mul, ho]
-      unfold evalOp
       simp [Tile.dot, Tile.expandDim, TileShape.dropInsertedIndex,
         StreamingAccumulator.oPartial_succ_of_lt Q numKVBlocks K V scale k hk]
-      simp only [Option.bind, Option.map]
     have h13 :
         stepStmt
           (Stmt.assign .real [M] "m_i" (Op.ref .real [M] "m_new")) s12 =
@@ -1362,7 +1337,7 @@ theorem fa1_step_strided
           =
           some (StreamingAccumulator.alphaPartial Q numKVBlocks K scale k i) := by
       intro i
-      simpa [WithBot.realSub] using
+      simpa only [WithBot.realSub, ← WithBot.some_eq_coe] using
         StreamingAccumulator.alphaPartial_toWithBot Q numKVBlocks K scale k i
     have hPData : ∀ (i : Fin M) (j : Fin Bk),
         WithBot.realExp
@@ -1729,19 +1704,19 @@ theorem fa1_step_strided
       intro a b
       rfl
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · simpa using hpids0
-    · simpa using hpids1
-    · simpa using hpids2
-    · simpa using hpid_qb
-    · simpa using hpid_h
-    · simpa using hpid_b
-    · simpa using hq_base
-    · simpa using hk_base
-    · simpa using hv_base
-    · simpa using ho_base
-    · simpa using hoffs_m
-    · simpa using hoffs_d
-    · simpa using hq
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids0
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids1
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids2
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_qb
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_h
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_b
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hq_base
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hk_base
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hv_base
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using ho_base
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hoffs_m
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hoffs_d
+    · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hq
     · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
         mNew, BlockState.setReg]
     · simpa [s', s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
@@ -2012,8 +1987,6 @@ theorem fa1_step_strided_causal
               (Op.expandDim ⟨0, by simp⟩ (Op.ref .nat [Bk] "offs_n")))) s6 =
           some s7 := by
       simp only [stepStmt, evalOp, Option.bind_eq_bind, Option.bind_some]
-      rw [evalOp_expandDim_one_nat]
-      rw [evalOp_expandDim_zero_nat]
       simp [s7, s6, s5, s4, s3, s2, s1, s0, causal, Tile.cop,
         ComparableDType.ge, hoffs_m, offsN, Tile.expandDim,
         TileShape.dropInsertedIndex]
@@ -2124,8 +2097,6 @@ theorem fa1_step_strided_causal
         s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
         p, scores, mNew, Tile.bop, Tile.uop, Tile.expandDim, NumericDType.sub,
         FA1MathCausal.block_mNew_tile_eq Q K scale k hk qb]
-      change some (s11.setReg "p" .real [M, Bk] p) = some s12
-      rfl
     have h13 :
         stepStmt
           (Stmt.assign .real [M] "l_new"
@@ -2141,7 +2112,6 @@ theorem fa1_step_strided_causal
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, hl,
         FA1MathCausal.block_lNew_tile_eq (qb * M) Q K scale k hk]
-      unfold evalOp
       simp [s13, lNew, alpha, p, Tile.bop, Tile.ofReal, Tile.reduceSum, Tile.reduceSumDrop,
         TileShape.axisDim, TileShape.eraseAxis, TileShape.insertAxisIndex,
         hBk, NumericDType.add, NumericDType.mul, WithBot.realAdd, WithBot.realMul,
@@ -2257,7 +2227,6 @@ theorem fa1_step_strided_causal
         Tile.expandDim, TileShape.dropInsertedIndex, NumericDType.add,
         NumericDType.mul, ho,
         FA1MathCausal.block_oAcc_tile_eq (qb * M) Q K V scale k hk]
-      unfold evalOp
       simp [Tile.dot, Tile.expandDim, TileShape.dropInsertedIndex,
         FA1MathCausal.oPartial_succ_of_lt (qb * M) Q numKVBlocks K V scale k hk]
       simp only [Option.bind, Option.map]
@@ -2392,19 +2361,19 @@ theorem fa1_step_strided_causal
     rw [stepStmts.cons_some h16]
     simp [stepStmts]
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · simpa using hpids0
-    · simpa using hpids1
-    · simpa using hpids2
-    · simpa using hpid_qb
-    · simpa using hpid_h
-    · simpa using hpid_b
-    · simpa using hq_base
-    · simpa using hk_base
-    · simpa using hv_base
-    · simpa using ho_base
-    · simpa using hoffs_m
-    · simpa using hoffs_d
-    · simpa using hq
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids0
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids1
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpids2
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_qb
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_h
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hpid_b
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hq_base
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hk_base
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hv_base
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using ho_base
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hoffs_m
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hoffs_d
+    · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0, BlockState.setReg] using hq
     · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,
         mNew, BlockState.setReg]
     · simpa [s', s15, s14, s13, s12, s11, s10, s9, s8, s7, s6, s5, s4, s3, s2, s1, s0,

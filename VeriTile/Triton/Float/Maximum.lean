@@ -68,6 +68,7 @@ def entry (a : Atom) (h : a.Available) : Spec.RuleEntry GuardedFragment :=
 def Atom.entry? (a : Atom) : Option (Spec.RuleEntry GuardedFragment) :=
   a.report?.map fun row => row.report.bind [lhs a] [rhs a]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Execute the actual fragments, including their precision, registers and
 finite guards, before applying the shared raw-word maximum laws. -/
 theorem strict_sound (a : Atom) : StrictFragmentSound (lhs a) (rhs a) := by
@@ -79,7 +80,7 @@ theorem strict_sound (a : Atom) : StrictFragmentSound (lhs a) (rhs a) := by
     obtain ⟨vb, hb, hfb⟩ := hg ⟨"b", .finite⟩ (by simp [lhs, Atom.guards])
     dsimp only [lhs, FloatDType.toTileDType, toFloat, strictDomain] at ha hb hfa hfb
     simp [lhs, rhs, fragment, fragmentAlgebra, maximum, ref, run, step,
-      evalExpr, evalComputeOp, evalOp_unfold, ComputeDType.eraseDType,
+      evalExpr, evalComputeOp_alg, evalOp_unfold, ComputeDType.eraseDType,
       ha, hb, scalarOutput, State.setReg, Software.fp32Context, toFloat, ofFloat]
     funext i
     cases i
@@ -90,7 +91,7 @@ theorem strict_sound (a : Atom) : StrictFragmentSound (lhs a) (rhs a) := by
     obtain ⟨vc, hc, hfc⟩ := hg ⟨"c", .finite⟩ (by simp [lhs, Atom.guards])
     dsimp only [lhs, FloatDType.toTileDType, toFloat, strictDomain] at ha hb hc hfa hfb hfc
     simp [lhs, rhs, fragment, fragmentAlgebra, maximum, ref, run, step,
-      evalExpr, evalComputeOp, evalOp_unfold, ComputeDType.eraseDType,
+      evalExpr, evalComputeOp_alg, evalOp_unfold, ComputeDType.eraseDType,
       ha, hb, hc, scalarOutput, State.setReg, Software.fp32Context, toFloat, ofFloat]
     funext i
     cases i
@@ -99,7 +100,7 @@ theorem strict_sound (a : Atom) : StrictFragmentSound (lhs a) (rhs a) := by
     obtain ⟨va, ha, hfa⟩ := hg ⟨"a", .finite⟩ (by simp [lhs, Atom.guards])
     dsimp only [lhs, FloatDType.toTileDType, toFloat, strictDomain] at ha hfa
     simp [lhs, rhs, fragment, fragmentAlgebra, maximum, ref, run, step,
-      evalExpr, evalComputeOp, evalOp_unfold, ComputeDType.eraseDType,
+      evalExpr, evalComputeOp_alg, evalOp_unfold, ComputeDType.eraseDType,
       ha, scalarOutput, State.setReg, Software.fp32Context, toFloat, ofFloat]
     funext i
     cases i
@@ -108,7 +109,7 @@ theorem strict_sound (a : Atom) : StrictFragmentSound (lhs a) (rhs a) := by
     obtain ⟨va, ha, hfa⟩ := hg ⟨"a", .finite⟩ (by simp [lhs, Atom.guards])
     dsimp only [lhs, FloatDType.toTileDType, toFloat, strictDomain] at ha hfa
     simp [lhs, rhs, fragment, fragmentAlgebra, maximum, ref, run, step,
-      evalExpr, evalComputeOp, evalOp_unfold, ComputeDType.eraseDType,
+      evalExpr, evalComputeOp_alg, evalOp_unfold, ComputeDType.eraseDType,
       ha, scalarOutput, State.setReg, Software.strictFP32, Software.scalarFP32,
       toFloat, ofFloat, Software.fp32Context]
     funext i

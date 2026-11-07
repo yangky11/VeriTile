@@ -117,7 +117,8 @@ theorem storeValue_cast (R : RoundingModel) (dtype : FloatDType) (v : ℝ) :
     R.storeValue dtype (R.cast .real dtype (some v)) = R.round dtype v := by
   have hunbot : ∀ x : ℝ, WithBot.unbotD 0 (some x) = x := fun _ => rfl
   cases dtype <;>
-    simp [storeValue, cast, FloatDType.storeValue, hunbot, R.round_idem]
+    simp [storeValue, cast, FloatDType.storeValue, FloatDType.ofWithBot,
+      FloatDType.toWithBot, roundW, WithBot.map, hunbot, R.round_idem]
 
 /-- ℝ-level quantization to the `dtype` grid: the numerical core shared by the
 typed cast (`RoundingModel.cast`) and the store demotion (`storeValue`). Both a

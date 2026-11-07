@@ -6,6 +6,9 @@ Split-out support for FlashAttention-1 v0/full-tile proofs.
 
 import VeriTile.Examples.FlashAttention1.Core.Steps
 
+-- Retain dependent-carrier reduction during Lean 4.35 proof elaboration.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton

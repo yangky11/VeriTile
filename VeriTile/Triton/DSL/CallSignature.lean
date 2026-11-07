@@ -5,6 +5,7 @@ import VeriTile.Triton.DSL.RawBodyConstants
 import VeriTile.Triton.DSL.PositionalBlockPointer
 import VeriTile.Triton.DSL.RawBodyStores
 import VeriTile.Triton.DSL.RawBodyDTypeControl
+import VeriTile.Triton.DSL.SourceLiterals
 import Lean
 
 /-! Call-site typing for a pasted Triton body. The signature describes pointer
@@ -24,6 +25,10 @@ structure CallSignature where
   floatingPointers : List (String × FloatDType) := []
   scalars : List (String × ScalarType) := []
   constexpr : List String := []
+  /-- Selected constant interpretation; the default preserves existing DSL semantics. -/
+  literalPolicy : LiteralPolicy := .exactDecimal
+  /-- Explicit meanings for helper names resolved by the source-module adapter. -/
+  helperAliases : List (String × SourceHelper) := []
 
 namespace DSL.CallSignature
 open Lean Elab Term Meta
@@ -125,6 +130,17 @@ private def scalarTypeValue (value : Expr) : TermElabM ScalarType := do
   if value.isConstOf ``ScalarType.integer then return .integer
   throwError "runtime scalar type must be FP32, FP64 or integer"
 
+private def literalPolicyValue (value : Expr) : TermElabM LiteralPolicy := do
+  let value ← whnf value
+  if value.isConstOf ``LiteralPolicy.exactDecimal then return .exactDecimal
+  if value.isConstOf ``LiteralPolicy.pythonFloat32 then return .pythonFloat32
+  throwError "literal policy must be statically known"
+
+private def helperValue (value : Expr) : TermElabM SourceHelper := do
+  let value ← whnf value
+  if value.isConstOf ``SourceHelper.rsqrt then return .rsqrt
+  throwError "source helper meaning must be statically known"
+
 private def bindings {α : Type} (decode : Expr → TermElabM α) (value : Expr) :
     TermElabM (List (String × α)) := do
   (← listValues value).mapM fun pair => do
@@ -138,11 +154,20 @@ private partial def rejectBodyMetadata (raw : Syntax) : TermElabM Unit := do
     throwErrorAt raw "pointer types belong in the call signature, outside the pasted body"
   if let `(tritonStmt| tl.param $_:ident : $_:tritonDType) := raw then
     throwErrorAt raw "runtime scalar types belong in the call signature, outside the pasted body"
+  -- The legacy embedded DSL has placeholder multi-result helper forms. A
+  -- pasted source body must never silently discard an unknown call.
+  if let `(tritonStmt| $_:ident, $_:ident = $_:ident($_:tritonExpr,*)) := raw then
+    throwErrorAt raw "unsupported multi-result source helper"
+  if let `(tritonStmt| $_:ident, $_:ident, $_:ident = $_:ident($_:tritonExpr,*)) := raw then
+    throwErrorAt raw "unsupported multi-result source helper"
+  if let `(tritonStmt| $_:ident, $_:ident, _ = $_:ident($_:tritonExpr,*)) := raw then
+    throwErrorAt raw "unsupported multi-result source helper"
   for arg in raw.getArgs do rejectBodyMetadata arg
 
 private partial def storeValues (raw : Syntax) : List Syntax :=
   match raw with
   | `(tritonStmt| tl.store($_:tritonExpr, $value:tritonExpr)) => [value.raw]
+  | `(tritonStmt| tl.store($_:tritonExpr, $value:tritonExpr, $_:tritonExpr $[, $_:tritonMemKwarg]*)) => [value.raw]
   | `(tritonStmt| tl.store($_:tritonExpr, $value:tritonExpr, $_:tritonMemKwarg $[, $_:tritonMemKwarg]*)) => [value.raw]
   | _ => raw.getArgs.toList.flatMap storeValues
 
@@ -177,6 +202,21 @@ private partial def storeValues (raw : Syntax) : List Syntax :=
             pure id
         floatingPointers := floatingPointers ++ [(name,id)]
       let scalars ← bindings scalarTypeValue (← mkAppM ``Triton.CallSignature.scalars #[profile])
+      let literalPolicy ← literalPolicyValue (← mkAppM ``Triton.CallSignature.literalPolicy #[profile])
+      let helpers ← bindings helperValue (← mkAppM ``Triton.CallSignature.helperAliases #[profile])
+      unless (helpers.map Prod.fst).eraseDups.length == helpers.length do
+        throwError "duplicate source helper alias"
+      if literalPolicy == .pythonFloat32 then
+        unless floatingPointers.isEmpty do
+          throwError "pythonFloat32 literals require statically known FP32 storage"
+        for (_, kind) in pointers do
+          match kind with
+          | .fp16 | .bf16 | .fp64 => throwError "pythonFloat32 literals require FP32 floating storage"
+          | _ => pure ()
+        for (_, kind) in scalars do
+          match kind with
+          | .fp64 => throwError "pythonFloat32 literals require FP32 floating scalar arguments"
+          | _ => pure ()
       let constants ← (← listValues (← mkAppM ``Triton.CallSignature.constexpr #[profile])).mapM stringValue
       let names := pointers.map Prod.fst ++ floatingPointers.map Prod.fst ++ scalars.map Prod.fst ++ constants
       unless names.eraseDups.length == names.length do throwError "duplicate name in call signature"
@@ -186,7 +226,8 @@ private partial def storeValues (raw : Syntax) : List Syntax :=
       let stmts := prepared.toArray
       let parserEnv ← getEnv
       let stmts ← liftMacroM <| stmts.mapM fun stmt =>
-        return (⟨← normalizeRawBody parserEnv (← PositionalBlockPointer.normalize (← RawBodyControl.normalize stmt.raw))⟩ : TSyntax `tritonStmt)
+        return (⟨← SourceLiterals.lower literalPolicy helpers
+          (← normalizeRawBody parserEnv (← PositionalBlockPointer.normalize (← RawBodyControl.normalize stmt.raw)))⟩ : TSyntax `tritonStmt)
       let (reads, writes) := Metadata.blockRegions stmts.toList
       for region in reads ++ writes do
         let `(term| $id:ident) := region

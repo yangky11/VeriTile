@@ -141,7 +141,12 @@ private def toU (io : MetaGatherMasked2DKernelIO₂ₓ₂) : UKernelIO where
   obuf := fun o => match o with
     | ⟨0, _⟩ => io.out1
     | _ => io.out2
-  obuf_mem := fun o => by fin_cases o <;> simp
+  obuf_mem := fun o => by
+    fin_cases o
+    · change io.out1 ∈ [io.mbufL, io.inp, io.out1, io.out2]
+      simp
+    · change io.out2 ∈ [io.mbufL, io.inp, io.out1, io.out2]
+      simp
   sarity := fun t => t.elim0
   sbuf := fun t => t.elim0
   iwin := fun i vals p₀ p₁ _ => match i with

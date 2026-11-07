@@ -124,7 +124,7 @@ theorem readMemValue_congr {s₁ s₂ : BlockState} (dtype : TileDType)
     {r : RegionName} {o : Nat} (h : s₁.mem r o = s₂.mem r o) :
     s₁.readMemValue dtype r o = s₂.readMemValue dtype r o := by
   cases dtype <;>
-    simp only [readMemValue, readMemAs_congr _ h, readMemTyped_congr _ h]
+    simp only [readMemValue, readMemAs_congr _ h, readMemTyped_congr _ h] <;> rfl
 
 end BlockState
 
@@ -575,6 +575,7 @@ theorem evalOp_agreeOn (bounds : RegionBounds) :
   | _, _, .indexedMaxValue _ ax a, s₁, s₂, hag, hms => by
       simp only [Op.SafeAt] at hms
       simp only [evalOp, evalOp_agreeOn bounds a s₁ s₂ hag hms]
+      rfl
   | _, _, .scan op ax dir a, s₁, s₂, hag, hms => by
       simp only [Op.SafeAt] at hms
       simp only [evalOp, evalOp_agreeOn bounds a s₁ s₂ hag hms]
@@ -716,7 +717,7 @@ theorem evalOp_agreeOn (bounds : RegionBounds) :
                             ⟨ms, IHm.trans hm, hact⟩))
                       · simp only [Bool.not_eq_true] at hact
                         simp only [hact, Bool.false_eq_true, if_false]
-                        cases d <;> simp [hag.undef]
+                        cases d <;> simp [hag.undef] <;> rfl
           | maskOther m other =>
               simp only [Op.SafeAt] at hms
               obtain ⟨hmsmem, ⟨hmm, hmo⟩, haddr⟩ := hms
@@ -783,7 +784,7 @@ theorem evalOp_agreeOn (bounds : RegionBounds) :
                             ⟨ms, IHm.trans hm, hact⟩))
                       · simp only [Bool.not_eq_true] at hact
                         simp only [hact, Bool.false_eq_true, if_false]
-                        cases d <;> simp [hag.undef]
+                        cases d <;> simp [hag.undef] <;> rfl
           | maskOther m other =>
               simp only [Op.SafeAt] at hms
               obtain ⟨hmsmem, ⟨hmm, hmo⟩, haddr⟩ := hms

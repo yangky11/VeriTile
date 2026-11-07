@@ -862,45 +862,51 @@ def minusOneBits : UInt32Bits :=
 def minusOneBitcast : ComputeOp .int32 [] :=
   ComputeOp.bitcast .uint32 .int32 rfl (ComputeOp.const minusOneBits)
 
+set_option backward.isDefEq.respectTransparency false in
 example :
     constOpToAlgorithm? oneBitcast = Except.ok (Op.const 1) := by
   have hdecode :
       Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) = some 1 :=
     Float32Bits.decodeRat_one
-  simp [constOpToAlgorithm?, oneBitcast, oneBits, constPayload?, bitcastPayload,
-    constToAlgorithm?]
-  change
-    (match Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) with
-      | some q => Except.ok (Op.const (q : ℝ))
-      | none => Except.error (.unsupportedBitcast "unsupported fp32 decode")) =
-    Except.ok (Op.const 1)
+  unfold constOpToAlgorithm? oneBitcast oneBits
+  dsimp only [constPayload?, bitcastPayload, constToAlgorithm?]
+  with_unfolding_all
+    change
+      (match Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) with
+        | some q => Except.ok (Op.const (q : ℝ))
+        | none => Except.error (EraseDTypeError.unsupportedBitcast "unsupported fp32 decode")) =
+      Except.ok (Op.const 1)
   rw [hdecode]
   norm_num
 
+set_option backward.isDefEq.respectTransparency false in
 theorem oneBitcast_toAlgorithm :
     constOpToAlgorithm? oneBitcast = Except.ok (Op.const 1) := by
   have hdecode :
       Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) = some 1 :=
     Float32Bits.decodeRat_one
-  simp [constOpToAlgorithm?, oneBitcast, oneBits, constPayload?, bitcastPayload,
-    constToAlgorithm?]
-  change
-    (match Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) with
-      | some q => Except.ok (Op.const (q : ℝ))
-      | none => Except.error (.unsupportedBitcast "unsupported fp32 decode")) =
-    Except.ok (Op.const 1)
+  unfold constOpToAlgorithm? oneBitcast oneBits
+  dsimp only [constPayload?, bitcastPayload, constToAlgorithm?]
+  with_unfolding_all
+    change
+      (match Float32Bits.decodeRat ({ bits := 0x3f800000#32 } : Float32Bits) with
+        | some q => Except.ok (Op.const (q : ℝ))
+        | none => Except.error (EraseDTypeError.unsupportedBitcast "unsupported fp32 decode")) =
+      Except.ok (Op.const 1)
   rw [hdecode]
   norm_num
 
+set_option backward.isDefEq.respectTransparency false in
 theorem minusOneBitcast_toAlgorithm :
     constOpToAlgorithm? minusOneBitcast = Except.ok (Op.constInt (-1)) := by
   have hsigned :
       Int32Bits.toInt ({ bits := 0xffffffff#32 } : Int32Bits) = -1 :=
     Int32Bits.toInt_negOne
-  simp [constOpToAlgorithm?, minusOneBitcast, minusOneBits, constPayload?, bitcastPayload,
-    constToAlgorithm?]
-  change Except.ok (Op.constInt (Int32Bits.toInt ({ bits := 0xffffffff#32 } : Int32Bits))) =
-    Except.ok (Op.constInt (-1))
+  unfold constOpToAlgorithm? minusOneBitcast minusOneBits
+  dsimp only [constPayload?, bitcastPayload, constToAlgorithm?]
+  with_unfolding_all
+    change Except.ok (Op.constInt (Int32Bits.toInt ({ bits := 0xffffffff#32 } : Int32Bits))) =
+      Except.ok (Op.constInt (-1))
   rw [hsigned]
 
 end ComputeOp

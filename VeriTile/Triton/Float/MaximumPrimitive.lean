@@ -6,6 +6,7 @@ import VeriTile.Meta.StatementAudit
 
 namespace VeriTile.Triton
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The old mathematical maximum is the real projection of the floating
 primitive. This lemma is deliberately about the mathematical interpreter;
 it imposes no comparison/select law on an arbitrary floating backend. -/
@@ -13,7 +14,7 @@ theorem evalOp_maximumFloat_real (bc : Broadcast a b out)
     (x : Op .real a) (y : Op .real b) (s : BlockState) :
     evalOp (.maximumFloat .real bc x y) s = evalOp (.max2 bc x y) s := by
   simp only [evalOp, FloatDType.toWithBot, FloatDType.ofWithBot]
-  rfl
+  with_unfolding_all rfl
 
 /-- All physical floating formats project to the same real maximum, retaining
 both operand projections and their broadcasting. -/
@@ -38,13 +39,14 @@ theorem evalOp_maximumFloat_real_select (bc : Broadcast a b out)
     simp [evalOp, hx, hy, Tile.bop, Tile.cop, Tile.select, Tile.remap, ComparableDType.gt, max_def, ← not_le, ite_not]
 
 
+set_option backward.isDefEq.respectTransparency false in
 /-- The rounding-model interpreter has the same mathematical max projection;
 its operand evaluation still uses the supplied rounding model. -/
 theorem evalOpR_maximumFloat_real (R : RoundingModel) (bc : Broadcast a b out)
     (x : Op .real a) (y : Op .real b) (s : BlockState) :
     evalOpR R (.maximumFloat .real bc x y) s = evalOpR R (.max2 bc x y) s := by
   simp only [evalOpR, FloatDType.toWithBot, FloatDType.ofWithBot]
-  rfl
+  with_unfolding_all rfl
 
 /-- Compatibility with the former mathematical comparison/select lowering.
 This is only a theorem about WithBot Real, never a law for IEEE NaN payloads. -/

@@ -48,6 +48,7 @@ theorem div_one_fp32 (x : Word) (finite : domain .finite x) :
     FP.div .ieeeValue x (FP.Value.ofBits .fp32 0x3f800000) = x := by
   simpa only [one_fp32] using div_one x finite
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Execute the actual `MUL-ONE` left fragment in every configuration.
 Flushing and NaN canonicalization remain visible in the result cast. -/
 theorem run_mulOne_lhs_cast (rest : Algebra Word) (cfg : Config)
@@ -56,12 +57,13 @@ theorem run_mulOne_lhs_cast (rest : Algebra Word) (cfg : Config)
     run (Software.scalarFP32 rest cfg) (ScalarArithmetic.lhs .mulOne).code s =
       some (s.setReg "out" .real [] (fun _ => FP.cast .fp32 cfg x)) := by
   simp only [ScalarArithmetic.lhs, ScalarArithmetic.lhsCode, ScalarArithmetic.fragment,
-    run, step, evalExpr, evalComputeOp, evalOp_unfold, ScalarArithmetic.ref,
+    run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ScalarArithmetic.ref,
     ScalarArithmetic.times, ComputeDType.eraseDType, numeric, hx]
   simp [Software.scalarFP32, Software.fp32Context, ← one_fp32]
   change s.setReg "out" .real [] (fun _ => FP.mul cfg x (ScalarOpsLaws.one .fp32)) = _
   rw [ScalarOpsLaws.mul_one_cast]
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Execute the actual `DIV-ONE` left fragment, retaining the configuration. -/
 theorem run_divOne_lhs_cast (rest : Algebra Word) (cfg : Config)
     (s : State Word) (x : Word)
@@ -69,23 +71,25 @@ theorem run_divOne_lhs_cast (rest : Algebra Word) (cfg : Config)
     run (Software.scalarFP32 rest cfg) (ScalarArithmetic.lhs .divOne).code s =
       some (s.setReg "out" .real [] (fun _ => FP.cast .fp32 cfg x)) := by
   simp only [ScalarArithmetic.lhs, ScalarArithmetic.lhsCode, ScalarArithmetic.fragment,
-    run, step, evalExpr, evalComputeOp, evalOp_unfold, ScalarArithmetic.ref,
+    run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ScalarArithmetic.ref,
     ScalarArithmetic.divide, ComputeDType.eraseDType, numeric, hx]
   simp [Software.scalarFP32, Software.fp32Context, ← one_fp32]
   change s.setReg "out" .real [] (fun _ => FP.div cfg x (ScalarOpsLaws.one .fp32)) = _
   rw [ScalarOpsLaws.div_one_cast]
 
+set_option backward.isDefEq.respectTransparency false in
 theorem run_addZero_lhs (rest : Algebra Word) (cfg : Config)
     (s : State Word) (x : Word)
     (hx : s.regs .real [] "a" = some (fun _ => x)) :
     run (Software.scalarFP32 rest cfg) (ScalarArithmetic.lhs .addZero).code s =
       some (s.setReg "out" .real [] (fun _ => FP.add cfg x (FP.Value.zero .fp32))) := by
   simp [ScalarArithmetic.lhs, ScalarArithmetic.lhsCode, ScalarArithmetic.fragment,
-    run, step, evalExpr, evalComputeOp, evalOp_unfold, ScalarArithmetic.ref,
+    run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ScalarArithmetic.ref,
     ScalarArithmetic.plus, ComputeDType.eraseDType, numeric, hx,
     Software.scalarFP32, Software.fp32Context]
   rfl
 
+set_option backward.isDefEq.respectTransparency false in
 /-- Each existing identity right fragment reads `a` without numerical work. -/
 theorem run_identity_rhs (rest : Algebra Word) (cfg : Config)
     (s : State Word) (x : Word) (atom : ScalarArithmetic.Atom)
@@ -95,7 +99,7 @@ theorem run_identity_rhs (rest : Algebra Word) (cfg : Config)
       some (s.setReg "out" .real [] (fun _ => x)) := by
   rcases hatom with rfl | rfl | rfl <;>
     simp [ScalarArithmetic.rhs, ScalarArithmetic.rhsCode, ScalarArithmetic.fragment,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, ScalarArithmetic.ref,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ScalarArithmetic.ref,
       ComputeDType.eraseDType, hx]
 
 theorem finite_guard (s : State Word) (x : Word) (atom : ScalarArithmetic.Atom)

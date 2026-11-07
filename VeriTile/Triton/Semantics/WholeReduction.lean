@@ -18,6 +18,7 @@ private theorem sum_getElem_optional {A B : Type*} [AddCommMonoid B]
   rw [← List.sum_ofFn]
   simpa only [Function.comp_def, List.ofFn_getElem] using
     congrArg List.sum (List.map_ofFn (f := fun i : Fin xs.length => xs[i.val]) (g := f)).symm
+set_option backward.isDefEq.respectTransparency false in
 /-- Flattening a matrix before its real sum yields the ordinary double sum.
 This is a real-semantics theorem, not an FP regrouping assumption. -/
 theorem Tile.reduceSum_reshape_two (M N : Nat) (x : Tile .real [M,N]) :

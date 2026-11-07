@@ -328,6 +328,7 @@ theorem block_score_mask_tile_eq {M Bk S_k : Nat} (k : Nat) :
     Broadcast.leftIndex, Broadcast.rightIndex,
     TileShape.dropInsertedIndex]
   simp
+  rfl
 
 /-- Applying the boundary score mask to the raw score tile produces exactly
 `maskedScore`: valid KV lanes carry the real scaled score; padded lanes carry
@@ -350,10 +351,10 @@ theorem block_scores_tile_eq {M S_k D Bk : Nat}
   cases u
   simp only [Tile.select_data, Tile.ofReal_data]
   by_cases h : k * Bk + j.val < S_k
-  · rw [decide_eq_true h]
+  · simp only [decide_eq_true h]
     simp [h, maskedScore_of_lt, blockIndex?_of_lt]
     rfl
-  · rw [decide_eq_false h]
+  · simp only [decide_eq_false h]
     simp [h, maskedScore_of_not_lt]
     rfl
 
@@ -398,6 +399,7 @@ theorem block_lNew_tile_eq {M S_k D Bk N : Nat}
   simp [Tile.bop, Tile.ofReal]
   rw [lPartial_succ_of_lt Bk Q N K scale k hk idx.1]
   simp [WithBot.realSub]
+  rfl
 
 /-- Boundary loop-local `o_acc` update realizes the masked streaming
 `oPartial` recurrence. -/
@@ -431,6 +433,7 @@ theorem block_oAcc_tile_eq {M S_k D Bk N : Nat}
   simp [Tile.bop, Tile.expandDim, Tile.ofReal, TileShape.dropInsertedIndex]
   rw [oPartial_succ_of_lt Bk Q N K V scale k hk (i, d, PUnit.unit)]
   simp [WithBot.realSub]
+  rfl
 
 /-! ### Boundary m-free reference sums
 

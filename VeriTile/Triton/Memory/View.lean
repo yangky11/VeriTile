@@ -226,6 +226,7 @@ theorem store_stage_readback_rowMajor2D
   simp [observeTileAt, stepStmt, evalOp, hPtrs, hVal, Tile.ofReal,
     BlockState.writeMemTyped_real, Offset.rowMajor2D, Offset.strided]
   rw [BlockState.scatter_readback_nd _ _ _ h_inj idx]
+  rfl
 
 /-- Row-major store-stage readback with a nonzero base offset. -/
 theorem store_stage_readback_rowMajor2D_base
@@ -254,6 +255,7 @@ theorem store_stage_readback_rowMajor2D_base
   simp [observeTileAt, stepStmt, evalOp, hPtrs, hVal, Tile.ofReal,
     BlockState.writeMemTyped_real, Offset.rowMajor2D, Offset.strided]
   rw [BlockState.scatter_readback_nd _ _ _ h_inj idx]
+  rfl
 
 
 /-- Maximum offset (relative to `base`) reachable by `strided shape strides`. -/

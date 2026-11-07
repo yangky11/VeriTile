@@ -13,6 +13,9 @@ import VeriTile.Triton.Concurrency.Atomic
 import VeriTile.Triton.Float
 import VeriTile.Meta.Specification
 
+-- Lean 4.35 requires the earlier carrier-unification transparency for these proofs.
+set_option backward.isDefEq.respectTransparency false
+
 namespace VeriTile.Examples
 
 open VeriTile.Triton
@@ -805,16 +808,6 @@ private theorem fa1BackwardAtomicDQPreAtomic_facts
       dV_block_tile_some_eq_attentionBackwardReal, WithBot.sum_someTerm_eq_some,
       exp_sum_mul_scale_eq, dS, rowCorrection, dP, probability, StreamingAccumulator.scaledScore]
   repeat unfold evalOp
-  simp [FA1BackwardAtomicDQPreAtomicFacts, fa1BackwardAtomicDQPreAtomicState,
-      fa1BackwardAtomicDQKernel, stepStmts, stepStmt, Option.bind, hPid,
-      hQ0, hK0, hV0, hdO0, hLSE, hKBlock, hVBlock, Offset.rowMajor2D,
-      Offset.strided, TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-      NumericDType.add, NumericDType.mul, NumericDType.sub, Tile.bop, Tile.uop,
-      Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop, Tile.ofReal,
-      probability_tile_eq, dP_tile_eq, rowCorrection_tile_eq, dS_tile_eq,
-      dQ_block_tile_some_eq_dQBlockContribution, dK_block_tile_some_eq_attentionBackwardReal,
-      dV_block_tile_some_eq_attentionBackwardReal, WithBot.sum_someTerm_eq_some,
-      exp_sum_mul_scale_eq, dS, rowCorrection, dP, probability, StreamingAccumulator.scaledScore]
   constructor
   · funext idx
     cases idx with
@@ -898,16 +891,6 @@ private theorem fa1BackwardAtomicDQCausalPreAtomic_facts
       WithBot.sum_someTerm_eq_some, exp_sum_mul_scale_eq, dS, rowCorrection, dP,
       probability, StreamingAccumulator.scaledScore]
   repeat unfold evalOp
-  simp [FA1BackwardAtomicDQCausalPreAtomicFacts, fa1BackwardAtomicDQCausalPreAtomicState,
-      fa1BackwardAtomicDQCausalKernel, stepStmts, stepStmt, Option.bind, hPid,
-      hQ0, hK0, hV0, hdO0, hLSE, hKBlock, hVBlock, Offset.rowMajor2D,
-      Offset.strided, TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-      NumericDType.add, NumericDType.mul, NumericDType.sub, ComparableDType.ge,
-      Tile.bop, Tile.cop, Tile.uop, Tile.dot, Tile.transpose, Tile.expandDim,
-      Tile.reduceSumDrop, Tile.ofReal,
-      probability_tile_eq, dP_tile_eq, rowCorrection_tile_eq,
-      WithBot.sum_someTerm_eq_some, exp_sum_mul_scale_eq, dS, rowCorrection, dP,
-      probability, StreamingAccumulator.scaledScore]
   constructor
   · funext idx
     cases idx with
@@ -920,14 +903,16 @@ private theorem fa1BackwardAtomicDQCausalPreAtomic_facts
             ring
   · constructor
     · funext i
-      simpa only [dQBlockContributionCausal, dQBlockContributionMasked] using
-        dQ_block_kernel_prop_tile_some_eq_dQBlockContributionCausal
-          Q K V dO LSE scale block i
+      with_unfolding_all
+        simpa only [dQBlockContributionCausal, dQBlockContributionMasked, dP, TileShape.axisDim, TileCarrier] using
+          dQ_block_kernel_prop_tile_some_eq_dQBlockContributionCausal
+            Q K V dO LSE scale block i
     · constructor
       · funext i
-        simpa only [attentionBackwardRealCausal, attentionBackwardRealMasked] using
-          dK_block_kernel_prop_tile_some_eq_attentionBackwardRealCausal
-            Q K V dO LSE scale block i
+        with_unfolding_all
+          simpa only [attentionBackwardRealCausal, attentionBackwardRealMasked, dP, TileShape.axisDim, TileCarrier] using
+            dK_block_kernel_prop_tile_some_eq_attentionBackwardRealCausal
+              Q K V dO LSE scale block i
       · funext i
         simpa only [attentionBackwardRealCausal, attentionBackwardRealMasked] using
           dV_block_kernel_prop_tile_some_eq_attentionBackwardRealCausal
@@ -1342,10 +1327,6 @@ theorem fa1BackwardStrippedKernelStrided_pointer_prefix
     TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
     NumericDType.add, NumericDType.mul, Tile.bop, Tile.expandDim]
   repeat unfold evalOp
-  simp [fa1BackwardStrippedStridedPointerState,
-    fa1BackwardStrippedKernelStrided, stepStmts, stepStmt, Option.bind,
-    TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-    NumericDType.add, NumericDType.mul, Tile.bop, Tile.expandDim]
 
 /-- Readback facts for the explicit stride-aware pointer setup state. -/
 theorem fa1BackwardStrippedStridedPointerState_facts
@@ -1927,15 +1908,6 @@ theorem fa1BackwardStrippedKernelStrided_math_suffix
     StreamingAccumulator.scaledScore, probability, dP, rowCorrection, dS,
     attentionBackwardReal, Tile.ofReal, mul_comm, mul_left_comm, mul_assoc]
   repeat unfold evalOp
-  simp [fa1BackwardStrippedStridedMathState, fa1BackwardStrippedKernelStrided,
-    stepStmts, stepStmt, Option.bind,
-    Tile.bop, Tile.uop, Tile.cop, Tile.dot, Tile.transpose, Tile.reduceSum,
-    Tile.reduceSumDrop, Tile.expandDim, TileShape.dropInsertedIndex,
-    TileShape.insertAxisIndex, NumericDType.add, NumericDType.mul,
-    NumericDType.sub, hq, hk, hv, hdOReg, hlse,
-    hdQBase, hdKBase, hdVBase, hoffsM, hoffsN, hoffsD,
-    StreamingAccumulator.scaledScore, probability, dP, rowCorrection, dS,
-    attentionBackwardReal, Tile.ofReal, mul_comm, mul_left_comm, mul_assoc]
   rfl
 
 /-- The stripped backward kernel is fully algorithm-projectable: it contains no
@@ -8218,17 +8190,6 @@ specification fa1BackwardStrippedKernel_correct
       dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq,
       WithBot.sum_someTerm_eq_some, dS, rowCorrection, dP, probability, StreamingAccumulator.scaledScore]
     repeat unfold evalOp
-    simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-      stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-      Offset.rowMajor2D, Offset.strided,
-      TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-      NumericDType.add, NumericDType.mul, NumericDType.sub,
-      Tile.bop, Tile.uop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-      Tile.ofReal, dQ_tile_some_eq_attentionBackwardReal, dK_tile_some_eq_attentionBackwardReal,
-      dV_tile_some_eq_attentionBackwardReal, dQ_tile_eq_attentionBackwardReal,
-      dK_tile_eq_attentionBackwardReal, dV_tile_eq_attentionBackwardReal,
-      dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq,
-      WithBot.sum_someTerm_eq_some, dS, rowCorrection, dP, probability, StreamingAccumulator.scaledScore]
   have hTail := strippedBackward_finalStores_readback
     dQReg dKReg dVReg M S D
     (s := sPre)
@@ -8246,15 +8207,6 @@ specification fa1BackwardStrippedKernel_correct
         dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
         dV_tile_eq_attentionBackwardReal]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-        NumericDType.add, NumericDType.mul, NumericDType.sub,
-        Tile.bop, Tile.uop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, probability_tile_eq, dP_tile_eq, rowCorrection_tile_eq, dS_tile_eq,
-        dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
-        dV_tile_eq_attentionBackwardReal]
       )
     (hPtrsK := by
       simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
@@ -8265,13 +8217,6 @@ specification fa1BackwardStrippedKernel_correct
         dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
         dV_tile_eq_attentionBackwardReal]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        Tile.bop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, probability_tile_eq, dP_tile_eq, rowCorrection_tile_eq, dS_tile_eq,
-        dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
-        dV_tile_eq_attentionBackwardReal]
       funext idx
       cases idx with
       | mk i rest =>
@@ -8288,13 +8233,6 @@ specification fa1BackwardStrippedKernel_correct
         dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
         dV_tile_eq_attentionBackwardReal]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        Tile.bop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, probability_tile_eq, dP_tile_eq, rowCorrection_tile_eq, dS_tile_eq,
-        dQ_tile_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
-        dV_tile_eq_attentionBackwardReal]
       funext idx
       cases idx with
       | mk i rest =>
@@ -8310,12 +8248,6 @@ specification fa1BackwardStrippedKernel_correct
         Tile.ofReal, dQ_tile_some_eq_attentionBackwardReal, dQ_tile_eq_attentionBackwardReal,
         dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        Tile.bop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, dQ_tile_some_eq_attentionBackwardReal, dQ_tile_eq_attentionBackwardReal,
-        dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq]
       funext idx
       cases idx with
       | mk i rest =>
@@ -8342,14 +8274,6 @@ specification fa1BackwardStrippedKernel_correct
         Tile.ofReal, dK_tile_some_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
         dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-        NumericDType.add, NumericDType.mul, NumericDType.sub,
-        Tile.bop, Tile.uop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, dK_tile_some_eq_attentionBackwardReal, dK_tile_eq_attentionBackwardReal,
-        dS_tile_eq, rowCorrection_tile_eq, dP_tile_eq, probability_tile_eq]
       funext idx
       cases idx with
       | mk i rest =>
@@ -8417,14 +8341,6 @@ specification fa1BackwardStrippedKernel_correct
         Tile.ofReal, dV_tile_some_eq_attentionBackwardReal, dV_tile_eq_attentionBackwardReal,
         probability_tile_eq]
       repeat unfold evalOp
-      simp [sPre, fa1BackwardStrippedPreStoreState, fa1BackwardStrippedKernel,
-        stepStmts, stepStmt, Option.bind, hQ0, hK0, hV0, hdO0, hLSE,
-        Offset.rowMajor2D, Offset.strided,
-        TileShape.dropInsertedIndex, TileShape.insertAxisIndex,
-        NumericDType.add, NumericDType.mul, NumericDType.sub,
-        Tile.bop, Tile.uop, Tile.dot, Tile.transpose, Tile.expandDim, Tile.reduceSumDrop,
-        Tile.ofReal, dV_tile_some_eq_attentionBackwardReal, dV_tile_eq_attentionBackwardReal,
-        probability_tile_eq]
       funext idx
       cases idx with
       | mk i rest =>

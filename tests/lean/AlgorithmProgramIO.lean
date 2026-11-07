@@ -27,7 +27,7 @@ theorem add_runs (s : BlockState) :
   simp [addSource,ComputeKernel.fromKernelBody,ComputeKernel.toAlgKernel,ComputeKernel.toAlgorithm?,
     ComputeStmt.listToAlgorithm?,ComputeStmt.toAlgorithm?,Except.bind,bind,unchangedIDs,AlgorithmLaunch.initial,
     exec,stepStmts,stepStmt,evalOp,Tile.bop,Tile.scalar,TileShape.allIndices,added,
-    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.add,Region.cast,-Tile.scalar_eta]
+    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.add,Region.cast,-Tile.scalar_eta] <;> rfl
 
 theorem twice_runs (s : BlockState) :
     (AlgorithmStage.single twiceSource unchangedIDs).Runs s (doubled s) := by
@@ -35,7 +35,7 @@ theorem twice_runs (s : BlockState) :
   simp [twiceSource,ComputeKernel.fromKernelBody,ComputeKernel.toAlgKernel,ComputeKernel.toAlgorithm?,
     ComputeStmt.listToAlgorithm?,ComputeStmt.toAlgorithm?,Except.bind,bind,unchangedIDs,AlgorithmLaunch.initial,
     exec,stepStmts,stepStmt,evalOp,Tile.bop,Tile.scalar,TileShape.allIndices,doubled,
-    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.mul,Region.cast,-Tile.scalar_eta]
+    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.mul,Region.cast,-Tile.scalar_eta] <;> rfl
 
 def input : BlockState :=
   { (default : BlockState) with mem := fun r _ => MemCell.of .nat (if r="x" then 3 else if r="tmp" then 10 else 0) }
@@ -47,7 +47,7 @@ theorem successor_reads_predecessor :
     (doubled (added input)).readMemValue .nat "out" 0=8 := by
   refine ⟨⟨.cons (add_runs input) (.cons (twice_runs _) (.nil _))⟩,?_⟩
   simp [added,doubled,input,BlockState.readMemValue,BlockState.readMemTyped,
-    BlockState.writeMemTyped,MemCell.of,MemCell.readAs]
+    BlockState.writeMemTyped,MemCell.of,MemCell.readAs] <;> decide
 
 /-- Reversing the concrete stage order changes the observed result. -/
 theorem reordered_sources_differ :
@@ -57,7 +57,7 @@ theorem reordered_sources_differ :
     (added (doubled input)).mem "out" 0≠(doubled (added input)).mem "out" 0 := by
   refine ⟨⟨.cons (twice_runs input) (.cons (add_runs _) (.nil _))⟩,?_,?_⟩
   all_goals simp [added,doubled,input,BlockState.readMemValue,BlockState.readMemTyped,
-    BlockState.writeMemTyped,MemCell.of,MemCell.readAs]
+    BlockState.writeMemTyped,MemCell.of,MemCell.readAs] <;> decide
 
 def outsideRead : AlgorithmSource where
   kernel := .fromKernelBody ["x"] [] [.assign .nat [] "v"
@@ -115,7 +115,7 @@ def swapNext (s : BlockState) := s.writeMemTyped .nat "x" (s.pids 0)
 theorem swap_runs (s : BlockState) : exec swapSource.kernel.toAlgKernel s=some (swapNext s) := by
   simp [swapSource,ComputeKernel.toAlgKernel,ComputeKernel.toAlgorithm?_fromKernelBody,
     exec,stepStmts,stepStmt,evalOp,Tile.bop,Tile.scalar,TileShape.allIndices,swapNext,
-    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.sub,Region.cast,-Tile.scalar_eta]
+    BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,NumericDType.sub,Region.cast,-Tile.scalar_eta] <;> rfl
 
 def swapFrames (s : BlockState) : Kernel.GridFrames swapSource.kernel.toAlgKernel two s :=
   fun idx => ⟨swapNext (s.withGridIndex idx),fun addr=>addr.1="x" ∧ addr.2=idx.toPids 0,
@@ -164,9 +164,9 @@ theorem ordinary_alias_differs_from_serial :
     rw [cell]
     simp [swapFrames,swapNext,swapInput,index,two,GridIndex.toPids,Grid.rank,
       BlockState.withGridIndex,BlockState.withPids,BlockState.withNumPids,
-      BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,MemCell.of,MemCell.readAs]
+      BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,MemCell.of,MemCell.readAs] <;> decide
   · simp [serial,swapNext,swapInput,launchAt,AlgorithmLaunch.initial,
-      BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,MemCell.of,MemCell.readAs]
+      BlockState.readMemValue,BlockState.readMemTyped,BlockState.writeMemTyped,MemCell.of,MemCell.readAs] <;> decide
 
 /-- An ordinary stage with zero declared source outputs still checks every
 launched source load; absence of result channels does not erase safety. -/
@@ -195,7 +195,7 @@ theorem rewrite_index_runs :
   rw [AlgorithmStage.single_runs]
   simp [rewriteIndex,ComputeKernel.toAlgKernel,ComputeKernel.toAlgorithm?_fromKernelBody,
     exec,stepStmts,stepStmt,evalOp,unchangedIDs,AlgorithmLaunch.initial,indexWritten,
-    BlockState.writeMemTyped,TileShape.allIndices,Tile.scalar,Region.cast,-Tile.scalar_eta]
+    BlockState.writeMemTyped,TileShape.allIndices,Tile.scalar,Region.cast,-Tile.scalar_eta] <;> rfl
 
 theorem indirect_read_runs :
     (AlgorithmStage.single indirectRead unchangedIDs).Runs indexWritten indirectFinal := by
@@ -203,7 +203,7 @@ theorem indirect_read_runs :
   simp [indirectRead,ComputeKernel.toAlgKernel,ComputeKernel.toAlgorithm?_fromKernelBody,
     exec,stepStmts,stepStmt,evalOp,unchangedIDs,AlgorithmLaunch.initial,indirectFinal,
     indexWritten,indexInput,BlockState.readMemValue,BlockState.readMemTyped,
-    BlockState.writeMemTyped,TileShape.allIndices,Tile.scalar,Region.cast,MemCell.readAs,MemCell.of,-Tile.scalar_eta]
+    BlockState.writeMemTyped,TileShape.allIndices,Tile.scalar,Region.cast,MemCell.readAs,MemCell.of,-Tile.scalar_eta] <;> rfl
 
 def indirectTrace : AlgorithmExecution
     [.single rewriteIndex unchangedIDs,.single indirectRead unchangedIDs] indexInput indirectFinal :=
@@ -229,7 +229,7 @@ theorem successor_safety_uses_predecessor :
     have bound := later.1.2.2
     have impossible := bound (Tile.scalar 1) (by
       simp [evalOp.eq_def,indexWritten,indexInput,BlockState.readMemValue,BlockState.readMemTyped,
-        BlockState.writeMemTyped,MemCell.readAs,MemCell.of,Region.cast,Tile.scalar,-Tile.scalar_eta]) PUnit.unit trivial
+        BlockState.writeMemTyped,MemCell.readAs,MemCell.of,Region.cast,Tile.scalar,-Tile.scalar_eta] <;> rfl) PUnit.unit trivial
     exact Nat.lt_irrefl 1 impossible
 
 end

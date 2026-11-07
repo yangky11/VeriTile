@@ -102,6 +102,7 @@ private theorem finite_operand (a : Atom) (name : String)
 
 set_option maxRecDepth 4096 in
 set_option maxHeartbeats 1600000 in
+set_option backward.isDefEq.respectTransparency false in
 /-- These are proofs about the registered fragments' actual execution, with
 their original finite guards and FP32 precision. No experiment is consumed. -/
 theorem strict_certificate (a : Atom) (ha : a.isStrict = true) :
@@ -115,7 +116,7 @@ theorem strict_certificate (a : Atom) (ha : a.isStrict = true) :
   case addCommute | mulCommute =>
     obtain ⟨vb, hvb, _⟩ := finite_operand _ "b" (by simp [guards]) s hg
     simp only [lhs, rhs, lhsCode, rhsCode, fragment, fragmentAlgebra,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, ref, plus, times,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ref, plus, times,
       ComputeDType.eraseDType, numeric, hva, hvb]
     simp [Software.strictFP32, Software.scalarFP32, Software.fp32Context]
     funext i
@@ -136,7 +137,7 @@ theorem strict_certificate (a : Atom) (ha : a.isStrict = true) :
       exact (ScalarOpsLaws.div_one_cast .ieeeValue (va i)).trans
         (CastExact.cast_same_of_finite (va i) (hfinite i))
     simp only [lhs, rhs, lhsCode, rhsCode, fragment, fragmentAlgebra,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, ref, times, divide,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ref, times, divide,
       ComputeDType.eraseDType, numeric, hva]
     simp [Software.strictFP32, Software.scalarFP32, Software.fp32Context]
     funext i
@@ -243,6 +244,7 @@ def Inputs {α : Type} (D : Domain α) (a b c : α) : Atom → Prop
   | .mulRcpCancel => D .finite a ∧ D .nonzero a
 
 set_option maxHeartbeats 1600000 in
+set_option backward.isDefEq.respectTransparency false in
 /-- Execute the actual scalar fragments before interpreting their admitted law.
 The arbitrary surrounding state contributes no numerical premise. -/
 theorem apply_derivation {α : Type} [Inhabited α] {R : Spec.Assumptions GuardedFragment}
@@ -262,7 +264,7 @@ theorem apply_derivation {α : Type} [Inhabited α] {R : Spec.Assumptions Guarde
   have h := hM (lhs atom) (rhs atom) derivation t hd hd
   cases atom <;>
     simp only [lhs, rhs, lhsCode, rhsCode, fragment, Reciprocal.lhs, Reciprocal.rhs,
-      run, step, evalExpr, evalComputeOp, evalOp_unfold, ref, plus, minus, times, divide,
+      run, step, evalExpr, evalComputeOp_alg, evalOp_unfold, ref, plus, minus, times, divide,
       Reciprocal.div, Reciprocal.inv, Reciprocal.mul, Reciprocal.ref,
       ComputeDType.eraseDType, numeric, State.setReg_same, t] at h
   all_goals
