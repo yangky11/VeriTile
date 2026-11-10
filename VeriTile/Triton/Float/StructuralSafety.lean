@@ -239,6 +239,9 @@ def safeAlg {α : Type} [Inhabited α] (M : Algebra α)
   | .atomicAdd _ _ mem value mask, s =>
       safeAddress M none bounds s mem ∧ safeOp M none bounds s value ∧
       safeMask M none bounds s mask ∧ addressSafe M none bounds s mem (maskActive M none s mask)
+  | .atomicRMW op dtype _ mem value none mask none, s =>
+      atomicReduceSupported op dtype ∧ safeAddress M none bounds s mem ∧ safeOp M none bounds s value ∧
+      safeMask M none bounds s mask ∧ addressSafe M none bounds s mem (maskActive M none s mask)
   | _, _ => False
 
 mutual
@@ -253,6 +256,9 @@ def stepSafe {α : Type} [Inhabited α] (M : Algebra α)
       safeMask M none bounds s mask ∧ addressSafe M none bounds s mem (maskActive M none s mask)
   | .atomicAdd _ _ mem value mask, s =>
       safeAddress M none bounds s mem ∧ safeExpr M bounds s value ∧
+      safeMask M none bounds s mask ∧ addressSafe M none bounds s mem (maskActive M none s mask)
+  | .atomicRMW op dtype _ mem value none mask none, s =>
+      atomicReduceSupported op dtype ∧ safeAddress M none bounds s mem ∧ safeExpr M bounds s value ∧
       safeMask M none bounds s mask ∧ addressSafe M none bounds s mem (maskActive M none s mask)
   | .forLoop idx n body, s => loopSafe M bounds idx 0 n body s
   | .forRange idx start stop stride body, s => rangeSafe M bounds idx start stop stride body s

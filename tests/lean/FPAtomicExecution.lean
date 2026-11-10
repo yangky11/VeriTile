@@ -7,6 +7,7 @@ assuming any floating algebraic law or cross-program execution order. -/
 namespace FPAtomicExecutionTests
 open VeriTile.Triton FP.Structural
 set_option maxHeartbeats 800000
+set_option backward.isDefEq.respectTransparency false
 
 variable {α : Type} [Inhabited α]
 

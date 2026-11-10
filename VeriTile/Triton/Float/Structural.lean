@@ -72,6 +72,10 @@ structure Algebra (α : Type) where
   rounding and special-value behavior need not equal ordinary addition.
   Missing support fails; scalar rewrite assumptions impose no atomic laws. -/
   atomicAdd : FloatDType → Option (α → α → α) := fun _ => none
+  /-- Storage-typed atomic maximum/minimum are independent of ordinary max and
+  reductions. No NaN, signed-zero, commutation or reassociation law is implied.
+  The interpreter admits only max/min with discarded return values. -/
+  atomicReduce : RMWOp → FloatDType → Option (α → α → α) := fun _ _ => none
   unary : Option ComputeDType → Unary → α → α
   /-- CUDA integer-exponent power has its own precision-specific backend.
   Absence fails; neither floating power nor multiplication is a fallback. -/
@@ -992,6 +996,32 @@ noncomputable def atomicAdd {α : Type} [Inhabited α] (M : Algebra α)
         if active i then t.write p.1 p.2
           (.mk dtype (combine ((t.mem p.1 p.2).read dtype) (values i))) else t) s
 
+/-- Supported discard-result reductions. Integer words and return-valued
+atomics need separate width/observation semantics and remain rejected. -/
+def atomicReduceSupported : RMWOp → TileDType → Prop
+  | .max, .real | .max, .fp32 | .max, .fp16 | .max, .bf16 | .max, .f8e4 | .max, .f8e5
+  | .min, .real | .min, .fp32 | .min, .fp16 | .min, .bf16 | .min, .f8e4 | .min, .f8e5 => True
+  | _, _ => False
+
+/-- Reuse the masked, storage-typed RMW fold with the distinct max/min backend.
+This is one program's ordered execution, not a claim about grid scheduling. -/
+noncomputable def atomicReduction {α : Type} [Inhabited α] (M : Algebra α)
+    (op : RMWOp) : {dtype : TileDType} → {shape : TileShape} →
+    MemAccess dtype shape → MaskOpt dtype shape → Values α dtype shape →
+    State α → Option (State α) :=
+  fun {dtype} {_} mem mask values s =>
+    if op = .max ∨ op = .min then
+      let backend := { M with atomicAdd := M.atomicReduce op }
+      match dtype,mem,mask,values with
+      | .real,mem,mask,values => atomicAdd backend .real mem mask values s
+      | .fp32,mem,mask,values => atomicAdd backend .fp32 mem mask values s
+      | .fp16,mem,mask,values => atomicAdd backend .fp16 mem mask values s
+      | .bf16,mem,mask,values => atomicAdd backend .bf16 mem mask values s
+      | .f8e4,mem,mask,values => atomicAdd backend .f8e4 mem mask values s
+      | .f8e5,mem,mask,values => atomicAdd backend .f8e5 mem mask values s
+      | _,_,_,_ => none
+    else none
+
 noncomputable def stepAlg {α : Type} [Inhabited α] (M : Algebra α) :
     Stmt → State α → Option (State α)
   | .assign d sh n e, s => do
@@ -1001,6 +1031,8 @@ noncomputable def stepAlg {α : Type} [Inhabited α] (M : Algebra α) :
       store M mem mask (← evalOp M none e s) s
   | .atomicAdd nd _ mem e mask, s => do
       atomicAdd M nd mem mask (← evalOp M none e s) s
+  | .atomicRMW op _ _ mem e none mask none, s => do
+      atomicReduction M op mem mask (← evalOp M none e s) s
   | _, _ => none
 
 mutual
@@ -1015,6 +1047,8 @@ noncomputable def step {α : Type} [Inhabited α] (M : Algebra α) :
       store M mem mask (← evalExpr M e s) s
   | .atomicAdd nd _ mem e mask, s => do
       atomicAdd M nd mem mask (← evalExpr M e s) s
+  | .atomicRMW op _ _ mem e none mask none, s => do
+      atomicReduction M op mem mask (← evalExpr M e s) s
   | .forLoop idx n body, s => loop M idx 0 n body s
   | .forRange idx start stop stride body, s => range M idx start stop stride body s
   | .forRangeDyn idx start stop stride body, s => do

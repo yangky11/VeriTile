@@ -31,6 +31,8 @@ inductive Symbol where
   | fromInt (precision : Option ComputeDType) (value : Int)
   | fp32Bits (bits : Float32Bits)
   | fp32Load
+  /-- Storage-typed atomic reductions are distinct from ordinary max/min. -/
+  | atomicReduce (operation : RMWOp) (dtype : FloatDType)
   | fma (precision : IndexComputePrecision)
   | fmaTyped (dtype : FloatDType)
   | dotAcc (precision : Option ComputeDType) (left right out : FloatDType)

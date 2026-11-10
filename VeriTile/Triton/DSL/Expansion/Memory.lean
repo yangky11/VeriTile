@@ -573,4 +573,48 @@ partial def expandAtomicAdd (expandExpr : ExprExpander)
             ← `(ComputeStmt.atomicAdd $hnum $sh (MemAccess.ptr $p'.term) $valueExpr' (MaskOpt.mask $m')),
             env, v'.computeTerm.isSome)
 
+
+/-- Discard-result floating max/min atomics. Storage comes from pointer
+provenance, never from the value's compute precision. Only the default memory
+semantics and scope are admitted; explicit unmodeled options fail closed. -/
+partial def expandAtomicReduction (expandExpr : ExprExpander)
+    (expandStaticPtrExpr : StaticPtrExpander) (env : Env)
+    (opName : String) (op : TSyntax `term) (storage : DInfo)
+    (p v : TSyntax `tritonExpr) (kwargs : TSyntaxArray `tritonMemKwarg) :
+    MacroM StmtExpansion := do
+  let mut maskTerm : Option (TSyntax `term × SInfo) := none
+  for kw in kwargs do
+    match kw with
+    | `(tritonMemKwarg| $name:ident = $value:tritonExpr) =>
+        unless name.getId.toString == "mask" do
+          Macro.throwError (opName ++ ": only mask= is modeled; explicit memory options are unsupported")
+        if maskTerm.isSome then Macro.throwError (opName ++ ": duplicate mask=")
+        let mask ← expandExpr env value
+        ensureDType .bool mask.dtype (opName ++ " mask")
+        maskTerm := some (mask.term,mask.shape)
+    | _ => Macro.throwError (opName ++ ": unsupported option")
+  let value ← expandExpr env v
+  let src ← value.dtype.floatProof
+  let dst ← storage.floatProof
+  let dt ← storage.term
+  let valueTerm ← value.scopedFloatingTerm
+  let converted ← `(Op.castFloat $src $dst $valueTerm)
+  let emit (mem : TSyntax `term) (shape : SInfo) : MacroM StmtExpansion := do
+    let converted ← coerceShape converted value.shape shape (opName ++ " value")
+    let mask ← match maskTerm with
+      | none => `(MaskOpt.none)
+      | some (mask,maskShape) => do
+          let broadcast ← coerceShape mask maskShape shape (opName ++ " mask")
+          `(MaskOpt.mask $broadcast)
+    let sh ← shape.term
+    pure (← `(Stmt.atomicRMW $op $dt $sh $mem $converted none $mask none),
+      ← `(ComputeStmt.atomicRMW $op $dt $sh $mem (ComputeExpr.alg $converted) none $mask none),
+      env,Bool.true)
+  match ← expandStaticPtrExpr env p with
+  | some pointer => emit (← `(MemAccess.region $pointer.region $pointer.offset)) pointer.shape
+  | none =>
+      let pointer ← expandExpr env p
+      ensureDType .ptr pointer.dtype (opName ++ " pointer")
+      emit (← `(MemAccess.ptr $pointer.term)) pointer.shape
+
 end VeriTile.Triton.DSL

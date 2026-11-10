@@ -3866,10 +3866,14 @@ partial def expandStmt (env : Env) (pinned intPinned : List String)
       expandStore expandExpr expandStaticPtrExpr env p v #[]
   | `(tritonStmt| tl.atomic_add($p:tritonExpr, $v:tritonExpr $[, $kwargs:tritonMemKwarg]*)) => do
       expandAtomicAdd expandExpr expandStaticPtrExpr env p v kwargs
-  | `(tritonStmt| tl.atomic_max($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
-      unsupportedAtomic2 "tl.atomic_max" p v
-  | `(tritonStmt| tl.atomic_min($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
-      unsupportedAtomic2 "tl.atomic_min" p v
+  | `(tritonStmt| tl.atomic_max($p:tritonExpr, $v:tritonExpr $[, $kwargs:tritonMemKwarg]*)) => do
+      let some storage ← fpPointerDType? fpSource.regions fpPtrElems p
+        | unsupportedAtomic2 "tl.atomic_max" p v
+      expandAtomicReduction expandExpr expandStaticPtrExpr env "tl.atomic_max" (← `(RMWOp.max)) storage p v kwargs
+  | `(tritonStmt| tl.atomic_min($p:tritonExpr, $v:tritonExpr $[, $kwargs:tritonMemKwarg]*)) => do
+      let some storage ← fpPointerDType? fpSource.regions fpPtrElems p
+        | unsupportedAtomic2 "tl.atomic_min" p v
+      expandAtomicReduction expandExpr expandStaticPtrExpr env "tl.atomic_min" (← `(RMWOp.min)) storage p v kwargs
   | `(tritonStmt| tl.atomic_and($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
       unsupportedAtomic2 "tl.atomic_and" p v
   | `(tritonStmt| tl.atomic_or($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>

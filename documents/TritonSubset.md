@@ -440,6 +440,39 @@ definitions live in `VeriTile.Triton.Correctness` and `VeriTile.Triton.Float`; s
 the compute/algorithm split and bitcast
 policy.
 
+## Floating atomic reductions and interleavings
+
+The [Structural evaluator](../VeriTile/Triton/Float/Structural.lean) accepts
+storage-typed, discard-result floating `atomic_max`/`atomic_min` through a
+separate `Algebra.atomicReduce` primitive. It preserves masks, implicit argument
+casts and repeated-address updates. The source frontend requires known floating
+pointer storage; unknown storage retains the previous failure marker. Explicit
+unmodeled options are rejected. Maximum/minimum are not equated with ordinary
+arithmetic or reductions, and no NaN, signed-zero or commutation law is assumed.
+Return-valued forms and integer-width atomic reductions remain unsupported here.
+
+The [interleaving interpreter](../VeriTile/Triton/Float/AtomicInterleaving.lean)
+executes actual source statements with shared memory and per-invocation
+registers and control stacks. It supports scalar atomics, conditionals and
+counted/natural/signed loops; loop bounds are captured on entry. Vector atomics,
+barriers and asynchronous effects fail closed. Each successful local tick
+[preserves the existing Structural continuation semantics](../VeriTile/Triton/Float/AtomicInterleavingCorrect.lean).
+The complete-run relation retains the chosen schedule, successful termination
+and final shared memory. It does not collapse different atomic orders to a
+single result. The [order-sensitive regression](../tests/lean/FPAtomicInterleaving.lean)
+checks both completed orders of two retained-source invocations against a
+deliberately noncommuting primitive; it is a control-flow countermodel, not a
+claim about hardware maximum. The [expression model](../VeriTile/Triton/Float/AtomicExpression.lean)
+keeps atomic operations separate from ordinary arithmetic and proves interpretation
+of each ordered update fold against the named primitive. [Typed reduction tests](../tests/lean/FPAtomicReduction.lean)
+cover masks, repeated addresses, unsupported forms and retained-source execution.
+
+This is a bounded source model, not a complete CUDA memory model or a native
+artifact certificate. Ordinary tile stores are statement-sized transitions;
+native admission must establish disjoint ordinary accesses and bind compiler
+execution to the supported model. Detailed vector-lane scheduling, races,
+hardware atomic arithmetic and source-to-native admission remain separate.
+
 ## Deterministic random values
 
 `tl.rand(seed, offsets)` lowers to an explicit `Op.rand` carrying the source
@@ -516,7 +549,7 @@ current semantic contract.
 | Randomness | Limited | Deterministic `tl.rand` with explicit source integer profiles, Philox rounds and canonical binary32 conversion; no mutable RNG or probabilistic model |
 | Indirection | Limited | Typed index loads can feed pointer arithmetic for gather/paged-KV style data-dependent addresses (#1); no alias/bounds/page-ownership proof layer yet |
 | Block pointers | Limited | `tl.make_block_ptr`, `tl.advance`, block-pointer load/store with checked-axis zero padding / store skip; no hardware/TMA behavior |
-| Atomics / async / barriers | Limited | `tl.atomic_add` has an AlgKernel `Stmt.atomicAdd` marker, sequential single-program semantics, trace payload vocabulary, and a Real grid-merge sum theorem. `tl.atomic_xchg` / `tl.atomic_cas` now project to return-valued `Stmt.atomicRMW` markers and have single-cell RMW fold semantics, executable statement semantics, stateful trace emission, and a single-cell grid launcher relation with an explicit linearization witness. Other `tl.atomic_*`, `tl.async_copy`, `tl.async_wait`, and `tl.debug_barrier` lower to compute-facing failure markers only; async/TMA discipline remains documented but not implemented; no full scheduler, executable barriers, executable async copy semantics, TMA AST, or IEEE atomic semantics (#1) |
+| Atomics / async / barriers | Limited | `tl.atomic_add` has an AlgKernel `Stmt.atomicAdd` marker, sequential single-program semantics, trace payload vocabulary, and a Real grid-merge sum theorem. `tl.atomic_xchg` / `tl.atomic_cas` now project to return-valued `Stmt.atomicRMW` markers and have single-cell RMW fold semantics, executable statement semantics, stateful trace emission, and a single-cell grid launcher relation with an explicit linearization witness. Typed discard-result floating max/min additionally have Structural execution (see above). Other `tl.atomic_*`, `tl.async_copy`, `tl.async_wait`, and `tl.debug_barrier` lower to compute-facing failure markers only; async/TMA discipline remains documented but not implemented; no full scheduler, executable barriers, executable async copy semantics, TMA AST, or IEEE atomic semantics (#1) |
 | Floating point fidelity | Limited | Mathematical values and abstract cast/store rounding models; no full IEEE-754 hardware semantics (#1) |
 
 ## Expressiveness Matrix
@@ -538,8 +571,8 @@ faithfully in the current Lean DSL?
 | Active-lane memory bounds | Limited | Lean proof predicate (#1) | `Kernel.MemorySafe` checks direct region offsets, dynamic pointer addresses, mask activeness, and `boundary_check` block-pointer lanes against `RegionBounds`; no race freedom, frame theorem, or permission accounting. |
 | Single-program write footprint/frame | Limited | Predicate-level frame contract + extraction helpers | `WriteFootprint := (RegionName × Nat) → Prop` and `BlockState.WriteWithin` state that an execution only modified cells inside a supplied footprint; `tileImage` / `activeTileImage` helpers extract direct, masked, and checked block-pointer store footprints. |
 | RNG / dropout | Limited | Deterministic value semantics | Profiled `tl.rand` is modeled; complete dropout source/IO/FP proofs and state/probabilistic semantics remain separate obligations. |
-| Atomics / async / shared memory / barriers | Limited | Atomic-add slice + concurrency boundary (#1) | `tl.atomic_add` has a proof-facing marker and Real trace/grid-sum theorem; `tl.atomic_xchg` / `tl.atomic_cas` have return-valued algorithm markers, single-cell RMW fold semantics, executable statement/trace integration, and a single-cell grid launcher relation; remaining unsupported atomic family members and async/barrier surfaces fail projection explicitly; async/TMA, shared memory, barriers, full scheduling, and IEEE atomic behavior remain gaps. |
-| Whole-grid launch semantics | Limited | ND grid theorem surface + disjoint/atomic merge (#1) | `GridIndex`, `BlockState.withGridIndex`, `Kernel.ForAllPrograms`, and `ForAllProgramsSome` quantify per-program correctness; `Kernel.mergeFrames` handles pairwise-disjoint footprints, `Kernel.mergeFramesWithAtomic` handles selected Real atomic-add contributions, and `Kernel.GridLaunchedRMW` handles one order-sensitive RMW cell with an explicit linearization witness. No full race/scheduler/interleaved executor. |
+| Atomics / async / shared memory / barriers | Limited | Atomic-add slice + concurrency boundary (#1) | `tl.atomic_add` has a proof-facing marker and Real trace/grid-sum theorem; `tl.atomic_xchg` / `tl.atomic_cas` have return-valued algorithm markers, single-cell RMW fold semantics, executable statement/trace integration, and a single-cell grid launcher relation; typed discard-result floating max/min additionally have Structural execution and a bounded scalar-atomic interleaving model (see above); remaining unsupported atomic family members and async/barrier surfaces fail projection explicitly; async/TMA, shared memory, barriers, full scheduling, and IEEE atomic behavior remain gaps. |
+| Whole-grid launch semantics | Limited | ND grid theorem surface + disjoint/atomic merge (#1) | `GridIndex`, `BlockState.withGridIndex`, `Kernel.ForAllPrograms`, and `ForAllProgramsSome` quantify per-program correctness; `Kernel.mergeFrames` handles pairwise-disjoint footprints, `Kernel.mergeFramesWithAtomic` handles selected Real atomic-add contributions, and `Kernel.GridLaunchedRMW` handles one order-sensitive RMW cell with an explicit linearization witness. A separate Structural scalar-atomic interpreter retains statement interleavings and local control stacks (see above); no full CUDA race/scheduler model. |
 | Python/Triton source ingestion | Gap | Front-end/lifter (#1) | Users must write Lean `triton { ... }`; decorators, Python-side constexpr execution, and general Python control flow are not parsed. |
 | Type checking / pointer provenance | Limited | Optional checker (#1) | `Kernel.check` / `checkStrict` track register dtype/shape, pointer and block-pointer provenance, dtype mismatches, and basic block-pointer metadata; no bounds, alias, launch, or page-ownership proof. |
 
