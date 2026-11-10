@@ -8,6 +8,7 @@ This file makes no compiler or GPU conformance claim. -/
 namespace VeriTile.Tests.TypedFMA
 open VeriTile.Triton FP.Structural
 noncomputable section
+set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 1000000
 
 inductive Trace where

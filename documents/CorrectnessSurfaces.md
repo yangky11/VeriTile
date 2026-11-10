@@ -715,3 +715,28 @@ the shared IO or implementation-equivalence judgments described above;
 `ComputeCorrect.*` and `ComputeRefine.*` remain supporting library surfaces.
 Naming details:
 [`TheoremSurfaces.md`](TheoremSurfaces.md).
+
+
+## Explicit compiler contraction choices
+
+[`DotTermModel`](../VeriTile/Triton/Float/DotTermModel.lean) reifies a typed tile
+dot-accumulate call with its complete operands, dimensions, formats, precision,
+options and output coordinate. Masked padding and accumulator lanes remain
+explicit. Fused calls have distinct symbols from separate multiply/add calls.
+
+[`FmaContraction`](../VeriTile/Triton/Float/FmaContraction.lean) records selected
+FP32 multiply/add contractions in these numerical call trees. Its local checker
+proves that accepted rewrites have the declared structural form. Finite operand
+paths and sequential edit lists lift this check through unchanged contexts;
+out-of-range or nonmatching edits fail. Composition
+preserves the multiplicity of input leaves. Different output uses may choose
+different contractions. Casts and precision boundaries cannot be crossed by the
+local rewrite.
+
+This relation is **not** `TermEq`, `≡[R]`, exact word equality, numerical admission
+or a whole-kernel implementation certificate. Evaluating the selected target
+specifies the chosen rounding operations; compiler/artifact correspondence and
+native primitive behavior still require explicit connections. The regression
+[`FmaContraction`](../tests/lean/FmaContraction.lean) includes an executable host
+counterexample to strict multiply/add versus FMA word equality, rejection across
+casts or other precision, and complete typed dot-operand ordering.

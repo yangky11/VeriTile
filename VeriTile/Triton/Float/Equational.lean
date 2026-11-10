@@ -31,6 +31,11 @@ inductive Symbol where
   | fromInt (precision : Option ComputeDType) (value : Int)
   | fp32Bits (bits : Float32Bits)
   | fp32Load
+  | fma (precision : IndexComputePrecision)
+  | fmaTyped (dtype : FloatDType)
+  | dotAcc (precision : Option ComputeDType) (left right out : FloatDType)
+      (options : DotOptions) (batch : TileShape) (m k n : Nat)
+      (outputIndex : TileIndex (batch ++ [m,n]))
   | reduceMax (precision : Option ComputeDType) (shape : TileShape)
       (axis : Fin shape.length) (keepDims : Bool)
       (outputIndex : TileIndex (TileShape.reduceShape shape axis keepDims))

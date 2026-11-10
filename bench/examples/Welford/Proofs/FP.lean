@@ -20,6 +20,7 @@ namespace VeriTile.Bench.Examples.WelfordFPExecution
 open VeriTile.Bench.Examples.Welford.Kernels
 open VeriTile Triton FP.Structural
 
+set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 1600000
 
 
