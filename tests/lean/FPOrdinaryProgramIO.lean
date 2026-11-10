@@ -96,6 +96,14 @@ theorem empty_grid_identity (s t : State α)
     (h : OrdinaryRun [] (fun i=>Fin.elim0 i) s t) : t.mem=s.mem :=
   OrdinaryRun.nil_memory _ s t h
 
+/-- An independently supplied completed run has the certified readback; it
+cannot replace the ordinary-grid read by serial producer/consumer behavior. -/
+theorem any_run_reads_common_initial (A : Algebra α) (s final : State α)
+    (actual : OrdinaryRun (jobs A) writes s final) :
+    final.mem "out" 0 = .mk .int ((s.mem "shared" 0).read .int) := by
+  rw [actual.memory_unique (gridRun A s)]
+  exact reads_common_initial A s
+
 #axiomsClean producer_run
 #axiomsClean consumer_run
 #axiomsClean gridRun
@@ -103,5 +111,8 @@ theorem empty_grid_identity (s t : State α)
 #axiomsClean serial_reads_written
 #axiomsClean exterior
 #axiomsClean empty_grid_identity
+#axiomsClean any_run_reads_common_initial
+#axiomsClean OrdinaryRun.memory_unique
+#axiomsClean OrdinaryProgramIO.ImplementsOn.observed
 end
 end VeriTile.Triton.FP.Structural.OrdinaryRegression

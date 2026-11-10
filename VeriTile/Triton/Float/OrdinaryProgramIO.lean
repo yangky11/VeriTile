@@ -64,6 +64,22 @@ theorem nil_memory {β : Type} [Inhabited β] (writes : Fin 0 → RegionName →
     (initial final : State β) (run : OrdinaryRun [] writes initial final) : final.mem=initial.mem := by
   funext r offset
   exact run.frame r offset (fun i => Fin.elim0 i)
+
+/-- Two executions of the same ordinary grid have the same final raw memory.
+Registers are local to invocations and deliberately absent from this claim.
+No arithmetic laws or source-level symmetry assumptions are used. -/
+theorem memory_unique {β : Type} [Inhabited β] {jobs : List (Invocation β)}
+    {writes : Fin jobs.length → RegionName → Nat → Prop} {initial left right : State β}
+    (first : OrdinaryRun jobs writes initial left)
+    (second : OrdinaryRun jobs writes initial right) : left.mem = right.mem := by
+  funext region offset
+  by_cases hit : ∃ i, writes i region offset
+  · obtain ⟨i,owns⟩ := hit
+    have rows : first.rows i = second.rows i :=
+      Option.some.inj ((first.executed i).symm.trans (second.executed i))
+    rw [first.readback i region offset owns,second.readback i region offset owns,rows]
+  · have outside : ∀ i, ¬ writes i region offset := by simpa only [not_exists] using hit
+    rw [first.frame region offset outside,second.frame region offset outside]
 end OrdinaryRun
 
 /-- Reuse typed IO fields and invocation data. Here `schedule` is the complete
@@ -96,6 +112,23 @@ def ImplementsOn {α β : Type} [Inhabited β] (io : OrdinaryProgramIO α β)
 
 def Implements {α β : Type} [Inhabited β] (io : OrdinaryProgramIO α β)
     (f : io.Inputs → io.Outputs) : Prop := io.ImplementsOn (fun _ => True) f
+
+/-- An implementation certificate applies to any actual completed run of the
+declared grid, not only to the existential witness chosen in its source proof.
+This is the source side of a native launch refinement. -/
+theorem ImplementsOn.observed {α β : Type} [Inhabited β] (io : OrdinaryProgramIO α β)
+    {domain : io.Inputs → Prop} {f : io.Inputs → io.Outputs}
+    (correct : io.ImplementsOn domain f) (values : io.Inputs) (admitted : domain values)
+    (initial final : State β) (binding : io.InputBinding values initial)
+    (run : OrdinaryRun (io.schedule values) (io.writes values) initial final) :
+    io.OutputBinding values (f values) final ∧ io.Frame values initial final := by
+  obtain ⟨proved,⟨witness⟩,_,outputs,frame⟩ := correct values admitted initial binding
+  have same := run.memory_unique witness
+  constructor
+  · intro o j active
+    simpa only [same] using outputs o j active
+  · intro region offset outside
+    simpa only [same] using frame region offset outside
 
 scoped infix:50 " ⊨ " => Implements
 
