@@ -46,6 +46,8 @@ namespace VeriTile.Bench.TritonBenchG.IntScaledMatmul
 open VeriTile.Triton
 
 set_option linter.unusedSimpArgs false
+-- Lean 4.35: infer the dependent broadcast shapes through transparent helpers.
+set_option backward.isDefEq.respectTransparency false
 
 /-! # ══════════ CORRECT — genuine / dimension-general (review this) ══════════ -/
 

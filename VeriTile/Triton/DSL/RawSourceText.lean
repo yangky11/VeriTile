@@ -94,6 +94,61 @@ private def cleanLine (line : String) : Except String (String × Int) := do
   let token := if word=="True" then "true" else if word=="False" then "false" else word
   return (out++token,nesting)
 
+/-- Python permits a trailing comma in a call's argument list. Remove only
+that punctuation, retaining tuple commas and quoted text. This runs after
+comment/string normalization, and never changes operands or their order. -/
+def callTrailingCommas (source : String) : String := Id.run do
+  let chars := source.toList.toArray
+  let mut out := ""
+  let mut stack : List Bool := []
+  let mut token := ""
+  let mut preceding := ""
+  let mut quoted := false
+  let mut escaped := false
+  for i in [:chars.size] do
+    let ch := chars[i]!
+    if quoted then
+      out := out.push ch
+      if escaped then escaped := false
+      else if ch == '\\' then escaped := true
+      else if ch == '"' then quoted := false
+    else if ch == '"' then
+      quoted := true
+      token := ""
+      preceding := ""
+      out := out.push ch
+    else
+      let mut skipComma := false
+      if ch == ',' && stack.head? == some true then
+        let mut next := i + 1
+        while next < chars.size && chars[next]!.isWhitespace do next := next + 1
+        skipComma := chars[next]? == some ')'
+      if !skipComma then out := out.push ch
+      if ch == '(' then
+        let name := if token.isEmpty then preceding else token
+        let call := !name.isEmpty &&
+          !["if","elif","while","for","return","and","or","not","in"].contains name
+        stack := call :: stack
+        token := ""
+        preceding := ""
+      else if ch == '[' || ch == '{' then
+        stack := false :: stack
+        token := ""
+        preceding := ""
+      else if ch == ')' || ch == ']' || ch == '}' then
+        stack := stack.drop 1
+        token := ""
+        preceding := ""
+      else if ch.isAlphanum || ch == '_' || ch == '.' then
+        token := token.push ch
+      else if ch.isWhitespace then
+        if !token.isEmpty then preceding := token
+        token := ""
+      else
+        token := ""
+        preceding := ""
+  return out
+
 private def logicalLines (source : String) : Except String (Array Line) := do
   let mut lines := #[]
   let mut pending := ""
@@ -111,7 +166,7 @@ private def logicalLines (source : String) : Except String (Array Line) := do
     nesting:=nesting+change
     if nesting<0 then throw "unbalanced Triton expression delimiters"
     if nesting==0 && !continuation then
-      lines:=lines.push ⟨indent,pending⟩
+      lines:=lines.push ⟨indent,callTrailingCommas pending⟩
       pending:=""
   if !pending.isEmpty || nesting != 0 then throw "unfinished Triton expression"
   return lines

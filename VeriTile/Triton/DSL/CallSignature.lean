@@ -221,8 +221,9 @@ private partial def storeValues (raw : Syntax) : List Syntax :=
       let names := pointers.map Prod.fst ++ floatingPointers.map Prod.fst ++ scalars.map Prod.fst ++ constants
       unless names.eraseDups.length == names.length do throwError "duplicate name in call signature"
       for stmt in stmts do rejectBodyMetadata stmt.raw
+      let expanded ← liftMacroM <| RawBodyControl.expandAssignments stmts
       let (constantBindings,prepared) ← liftMacroM <|
-        RawBodyConstants.prepare (constants.map Name.mkSimple) [] stmts.toList
+        RawBodyConstants.prepare (constants.map Name.mkSimple) [] expanded.toList
       let stmts := prepared.toArray
       let parserEnv ← getEnv
       let stmts ← liftMacroM <| stmts.mapM fun stmt =>

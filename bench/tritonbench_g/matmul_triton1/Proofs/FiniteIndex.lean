@@ -7,6 +7,8 @@ Both kernels widen every runtime scalar, program id and arange lane to uint64.
 Only actually accessed addresses require allocation bounds; padded pointers
 retain modular arithmetic. -/
 namespace VeriTile.Bench.Repairs.MatmulTriton1.Revision001.FiniteIndex
+-- Lean 4.35: unfold the word helper while matching dependent rewrite targets.
+set_option backward.isDefEq.respectTransparency false
 open VeriTile.Triton
 open VeriTile.Bench.Repairs.IntScaledMatmul.Revision001
 abbrev Parameters := Core.Parameters

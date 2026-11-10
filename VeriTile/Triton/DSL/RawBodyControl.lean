@@ -3,10 +3,46 @@ namespace VeriTile.Triton.DSL.RawBodyControl
 open Lean
 syntax "tl.full(" "(" tritonExpr,* ")" ", " tritonExpr ", " tritonDType ")" : tritonExpr
 syntax "while " tritonExpr " { " tritonStmt* " }" : tritonStmt
+syntax (name := independentTupleAssignment) ident "," ident,+ "=" "(" tritonExpr,+,? ")" : tritonStmt
 
 private partial def identifiers (raw : Syntax) : List Name :=
   if raw.isIdent then [raw.getId.eraseMacroScopes]
   else raw.getArgs.toList.flatMap identifiers
+
+mutual
+  /-- Bounded simultaneous assignment: every RHS is independent of all target
+  registers. Their source order is retained. Dependent swaps are rejected,
+  rather than silently changed into sequential assignments. -/
+  partial def expandAssignment (raw : Syntax) : MacroM (Array Syntax) := do
+    if raw.isOfKind ``independentTupleAssignment then
+      let targets := #[raw[0]] ++ raw[2].getSepArgs
+      let values := raw[5].getSepArgs
+      unless targets.size == values.size do
+        Macro.throwErrorAt raw "tuple assignment target/value counts differ"
+      let names := targets.toList.map (·.getId.eraseMacroScopes)
+      unless names.eraseDups.length == names.length do
+        Macro.throwErrorAt raw "tuple assignment requires distinct targets"
+      for value in values do
+        if (identifiers value).any (fun read => names.any (·.isPrefixOf read)) then
+          Macro.throwErrorAt raw "dependent tuple assignment is unsupported"
+      (targets.zip values).mapM fun (target,value) => do
+        let target : Ident := ⟨target⟩
+        let value : TSyntax `tritonExpr := ⟨value⟩
+        return (← `(tritonStmt| $target:ident = $value:tritonExpr)).raw
+    else return #[← expandNested raw]
+
+  /-- Only statement sequences may expand. Expression operands and their
+  ordering remain untouched, including inside nested range/branch bodies. -/
+  partial def expandNested (raw : Syntax) : MacroM Syntax := do
+    if raw.isOfKind nullKind then
+      let groups ← raw.getArgs.mapM expandAssignment
+      return raw.setArgs groups.flatten
+    else return raw.setArgs (← raw.getArgs.mapM expandNested)
+end
+
+def expandAssignments (body : Array (TSyntax `tritonStmt)) : MacroM (Array (TSyntax `tritonStmt)) := do
+  let groups ← body.mapM (fun stmt => expandAssignment stmt.raw)
+  return groups.flatten.map (fun raw => ⟨raw⟩)
 
 /-- Source writes, including nested statements and loop bindings. -/
 private partial def writes (raw : Syntax) : List Name := Id.run do

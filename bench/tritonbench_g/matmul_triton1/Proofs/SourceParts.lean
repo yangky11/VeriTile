@@ -12,6 +12,8 @@ noncomputable section
 set_option maxRecDepth 24000
 set_option maxHeartbeats 4000000
 set_option linter.unusedSimpArgs false
+-- Lean 4.35: expose dependent compute cases while generating unfold equations.
+set_option backward.isDefEq.respectTransparency false
 variable {α : Type} [Inhabited α]
 
 def prelude (p : Core.Parameters) : List ComputeStmt :=
@@ -26,7 +28,7 @@ def preludeExecution (rest : Algebra α) (P : Core.Primitives α) (p : Core.Para
   simp [prelude,VeriTile.Bench.Repairs.MatmulTriton1.Kernel.source,VeriTile.Bench.Repairs.MatmulTriton1.Kernel.arguments,VeriTile.Bench.Repairs.MatmulTriton1.Kernel.scalarParameters,
     VeriTile.Bench.Repairs.MatmulTriton1.Kernel.body,ComputeKernel.surfaceBody,
     ComputeKernel.withScalarArguments,ScalarArgument.integer,ScalarArgument.statement,
-    run,step,evalExpr,evalComputeOp,evalOp_unfold,evalOffsets,store,numeric,bop,natLt,numericEq,
+    run,step,evalExpr,evalComputeOp_alg,evalOp_unfold,evalOffsets,store,numeric,bop,natLt,numericEq,
     ComputeDType.eraseDType,ofFloat,toFloat,FloatDType.numericDType,
     FloatDType.toTileDType,Region.cast,Option.bind,integralFloorDiv,integralMod,
     VeriTile.Bench.Repairs.MatmulTriton1.DotProfile.algebra,VeriTile.Bench.Repairs.MatmulTriton1.DotProfile.add]
