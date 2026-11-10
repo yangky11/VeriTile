@@ -6,6 +6,12 @@ only on active lanes: inactive addresses may alias or exceed allocation bounds.
 These rules preserve raw typed cells and assume no floating arithmetic laws. -/
 namespace VeriTile.Triton.FP.Structural.State
 
+theorem write_memory_congr {α : Type} (first second : State α)
+    (region : RegionName) (offset : Nat) (value : Cell α) (same : first.mem = second.mem) :
+    (first.write region offset value).mem = (second.write region offset value).mem := by
+  funext r o
+  simp only [State.write,same]
+
 @[simp] theorem masked_scatter_regs {α ι : Type} (region : RegionName) (offset : ι → Nat)
     (value : ι → Cell α) (active : ι → Prop) [DecidablePred active]
     (indices : List ι) (initial : State α) :
@@ -66,6 +72,7 @@ theorem masked_scatter_readback_on {α : Type} {shape : TileShape}
   exact injective i j (of_decide_eq_true (List.mem_filter.mp hi).2)
     (of_decide_eq_true (List.mem_filter.mp hj).2) same
 
+#axiomsClean write_memory_congr
 #axiomsClean masked_scatter_regs
 #axiomsClean scatter_memory_congr
 #axiomsClean masked_scatter_memory_congr

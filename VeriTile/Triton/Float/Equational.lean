@@ -25,6 +25,7 @@ inductive Symbol where
   | literal (precision : Option ComputeDType) (dtype : FloatDType) (value : ℝ)
   | negInf
   | binary (precision : Option ComputeDType) (dtype : FloatDType) (op : Structural.Binary)
+  | minimum (precision : Option ComputeDType) (dtype : FloatDType)
   | unary (precision : Option ComputeDType) (op : Structural.Unary)
   | cast (precision : Option ComputeDType) (source target : FloatDType)
   | fromNat (precision : Option ComputeDType) (value : Nat)
