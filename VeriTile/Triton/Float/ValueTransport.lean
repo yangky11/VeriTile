@@ -20,8 +20,10 @@ theorem toFloat_mapValue (f : α → β) (dtype : FloatDType) (value : Value α 
     toFloat dtype (mapValue f dtype.toTileDType value) = f (toFloat dtype value) := by
   cases dtype <;> rfl
 
-def Cell.map (f : α → β) : Cell α → Cell β
+def mapCell (f : α → β) : Cell α → Cell β
   | .mk dtype value => .mk dtype (mapValue f dtype value)
+
+def Cell.map (f : α → β) (cell : Cell α) : Cell β := mapCell f cell
 
 theorem Cell.map_read [Inhabited α] [Inhabited β] (f : α → β) (preserves : f default = default)
     (cell : Cell α) (dtype : TileDType) :
@@ -29,8 +31,8 @@ theorem Cell.map_read [Inhabited α] [Inhabited β] (f : α → β) (preserves :
   cases cell with | mk stored value =>
     by_cases same : stored = dtype
     · subst stored
-      simp only [Cell.map,Cell.read_same]
-    · simp [Cell.map,Cell.read,same,mapValue_default f preserves]
+      simp only [Cell.map,mapCell,Cell.read_same]
+    · simp [Cell.map,mapCell,Cell.read,same,mapValue_default f preserves]
 
 def State.map (f : α → β) (state : State α) : State β where
   mem := fun region offset => (state.mem region offset).map f

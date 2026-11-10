@@ -1,4 +1,5 @@
 import VeriTile.Triton.Float.StructuralSafety
+import VeriTile.Triton.Float.ValueTransport
 
 /-! Typed regional IO for actual Structural kernels and finite launch schedules.
 
@@ -10,14 +11,6 @@ transport claim: that remains a separate memory-model theorem.
 -/
 namespace VeriTile.Triton.FP.Structural
 noncomputable section
-
-/-- Map floating payloads only; preserve discrete values and their types. -/
-def mapValue {α β : Type} (f : α → β) : (d : TileDType) → Value α d → Value β d
-  | .real | .fp32 | .fp16 | .bf16 | .f8e4 | .f8e5 => f
-  | .nat | .int | .bool | .ptr | .blockPtr => id
-
-def mapCell {α β : Type} (f : α → β) : Cell α → Cell β
-  | .mk d v => .mk d (mapValue f d v)
 
 /-- One runtime ABI register binding; this is data, not a state transformer. -/
 structure RegisterBinding (α : Type) where
