@@ -105,6 +105,7 @@ globs = [
   "tests.lean.FPArrayProgramIO",
   "tests.lean.FPOrdinaryProgramIO",
   "tests.lean.MaskedScatterReadback",
+  "tests.lean.StridedLayout",
   "tests.lean.FPMaterializedProgramIO",
   "tests.lean.TypedFMA",
   "tests.lean.ConcurrentEventIO",
