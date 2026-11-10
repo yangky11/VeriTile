@@ -723,6 +723,12 @@ Naming details:
 dot-accumulate call with its complete operands, dimensions, formats, precision,
 options and output coordinate. Masked padding and accumulator lanes remain
 explicit. Fused calls have distinct symbols from separate multiply/add calls.
+[`DotInterpretation`](../VeriTile/Triton/Float/DotInterpretation.lean) proves the
+inverse numerical connection: evaluating a reified dot call invokes the chosen
+typed primitive with exactly the interpreted left, right and accumulator tiles.
+The proof covers arbitrary batch shapes, dimensions and floating channels,
+including empty axes. Scalar labels retain their original precision and casts.
+No scalar reduction tree or hardware-conformance law is introduced.
 
 [`FmaContraction`](../VeriTile/Triton/Float/FmaContraction.lean) records selected
 FP32 multiply/add contractions in these numerical call trees. Its local checker
