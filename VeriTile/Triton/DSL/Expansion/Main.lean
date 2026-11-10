@@ -3089,6 +3089,15 @@ partial def expandStmt (env : Env) (pinned intPinned : List String)
         (dest.getId.toString, e'.dtype, e'.shape, e'.computeDType?) ::
           (envName, e'.dtype, e'.shape, e'.computeDType?) :: env,
         e'.computeTerm.isSome)
+  -- Atomic operands carry the same pointer-storage provenance as ordinary
+  -- assignments, including nested loads and masks. Do not default a typed
+  -- storage read to the mathematical real channel.
+  let typedOperand : ExprExpander := fun scope expression => do
+    let expression : TSyntax `tritonExpr :=
+      ⟨← annotateFloatingLoadStorage regionDTypes ptrElems expression.raw⟩
+    let expression : TSyntax `tritonExpr :=
+      ⟨← annotateWideFloatingLoadStorage fpSource.regions fpPtrElems expression.raw⟩
+    expandExpr scope expression
   match stx with
   | `(tritonStmt| $r0:ident, $r1:ident, $r2:ident, $r3:ident =
       tl.__philox_profiled($cfg:term, $seed:tritonExpr, $c0:tritonExpr,
@@ -3869,11 +3878,11 @@ partial def expandStmt (env : Env) (pinned intPinned : List String)
   | `(tritonStmt| tl.atomic_max($p:tritonExpr, $v:tritonExpr $[, $kwargs:tritonMemKwarg]*)) => do
       let some storage ← fpPointerDType? fpSource.regions fpPtrElems p
         | unsupportedAtomic2 "tl.atomic_max" p v
-      expandAtomicReduction expandExpr expandStaticPtrExpr env "tl.atomic_max" (← `(RMWOp.max)) storage p v kwargs
+      expandAtomicReduction typedOperand expandStaticPtrExpr env "tl.atomic_max" (← `(RMWOp.max)) storage p v kwargs
   | `(tritonStmt| tl.atomic_min($p:tritonExpr, $v:tritonExpr $[, $kwargs:tritonMemKwarg]*)) => do
       let some storage ← fpPointerDType? fpSource.regions fpPtrElems p
         | unsupportedAtomic2 "tl.atomic_min" p v
-      expandAtomicReduction expandExpr expandStaticPtrExpr env "tl.atomic_min" (← `(RMWOp.min)) storage p v kwargs
+      expandAtomicReduction typedOperand expandStaticPtrExpr env "tl.atomic_min" (← `(RMWOp.min)) storage p v kwargs
   | `(tritonStmt| tl.atomic_and($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
       unsupportedAtomic2 "tl.atomic_and" p v
   | `(tritonStmt| tl.atomic_or($p:tritonExpr, $v:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>

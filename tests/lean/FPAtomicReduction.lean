@@ -82,6 +82,25 @@ theorem source_executes (M : Algebra α) (s : State α) (f : α → α → α)
     toFloat,ofFloat]
 
 
+/-- Inline operands must use the same declared storage as assigned loads. -/
+def nestedSource : RetainedSource :=
+  let input : RegionName := "input"
+  let observed : RegionName := "observed"
+  retain_triton_signature signature in triton {
+    tl.atomic_max(observed, tl.load(input + tl.program_id(0)))
+  }
+
+theorem nested_source_executes (M : Algebra α) (s : State α) (f : α → α → α)
+    (available : M.atomicReduce .max .fp32 = some f) :
+    exec M nestedSource.kernel s = some (s.write "observed" 0
+      (.mk .fp32 (f ((s.mem "observed" 0).read .fp32)
+        (M.cast none .fp32 .fp32 ((s.mem "input" (s.pids 0)).read .fp32))))) := by
+  have indices : TileShape.allIndices [] = [()] := rfl
+  simp [nestedSource,exec,run,step,evalExpr,evalOp_unfold,atomicReduction,atomicAdd,
+    atomicAddition,available,indices,Region.cast,ofFloat,toFloat]
+
+#axiomsClean nested_source_executes
+
 def scalarSignature : CallSignature where
   floatingPointers := [("observed",.fp32)]
   scalars := [("payload",.fp32)]
