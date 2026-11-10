@@ -874,6 +874,15 @@ theorem evalComputeOp_alg {α : Type} [Inhabited α] (M : Algebra α)
     evalComputeOp M (.alg d e) s = evalOp M (some d) e s := by
   rfl
 
+theorem evalComputeOp_const_fp32 {α : Type} [Inhabited α] (M : Algebra α)
+    (word : Float32Bits) (s : State α) :
+    evalComputeOp M (.const (dtype := .fp32) word) s = some (fun _ => M.fp32Bits word) := rfl
+
+theorem evalComputeOp_full {α : Type} [Inhabited α] (M : Algebra α)
+    {dtype : ComputeDType} (shape : TileShape) (e : ComputeOp dtype []) (s : State α) :
+    evalComputeOp M (.full shape e) s =
+      (do let value ← evalComputeOp M e s; pure (fun _ => value PUnit.unit)) := rfl
+
 noncomputable def evalExpr {α : Type} [Inhabited α] (M : Algebra α) :
     ComputeExpr dtype shape → State α → Option (Values α dtype shape)
   | .alg e, s => evalOp M none e s
