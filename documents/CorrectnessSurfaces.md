@@ -729,6 +729,10 @@ typed primitive with exactly the interpreted left, right and accumulator tiles.
 The proof covers arbitrary batch shapes, dimensions and floating channels,
 including empty axes. Scalar labels retain their original precision and casts.
 No scalar reduction tree or hardware-conformance law is introduced.
+[`ValueTransport`](../VeriTile/Triton/Float/ValueTransport.lean) maps floating
+carriers through tagged cells and states while retaining discrete data and
+launch coordinates. Its readback theorem explicitly requires preservation of
+the default floating value, including reads through mismatched memory tags.
 
 [`FmaContraction`](../VeriTile/Triton/Float/FmaContraction.lean) records selected
 FP32 multiply/add contractions in these numerical call trees. Its local checker
