@@ -559,8 +559,15 @@ A lifter is only useful for kernels whose operations are already representable.
 - Higher-rank bracket slicing beyond the currently supported rank-1
   `[:, None]` / `[None, :]` forms. Use `tl.expand_dims(e, axis=N)` for
   explicit unit-axis insertion.
-- Integer widths, overflow, signedness, and signed bitwise behavior. The `.nat`
-  channel is mathematical `Nat`.
+- General integer widths, overflow, signedness, and signed bitwise behavior.
+  The `.nat` channel is mathematical `Nat`. The reusable
+  [`Memory/AddressBounds.lean`](../VeriTile/Triton/Memory/AddressBounds.lean)
+  supplies a narrower bridge for nonnegative affine addresses: modular
+  multiply/add agrees with the mathematical strided offset, and a checked
+  envelope proves its signed-word interpretation (including byte scaling).
+  Tile-lane bounds include padded, masked-off coordinates. Callers must connect
+  their actual source expressions to those coordinates; this does not supply
+  general integer-source semantics or prove CUDA pointer allocation/execution.
 
 ## Documentation Generation
 
