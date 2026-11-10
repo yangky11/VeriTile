@@ -301,6 +301,22 @@ def splitLastIndex :
     setAxisOne (d :: rest) ⟨k + 1, h⟩ =
       d :: setAxisOne rest ⟨k, Nat.succ_lt_succ_iff.mp h⟩ := rfl
 
+/-- Rank decreases by exactly one, independent of which well-formed axis is
+removed. This lets nested reductions prove their next axis bound without
+normalizing the previous axis's finite numeral representation. -/
+@[simp] theorem length_eraseAxis (shape : TileShape) (axis : Fin shape.length) :
+    (eraseAxis shape axis).length = shape.length - 1 := by
+  induction shape with
+  | nil => exact Fin.elim0 axis
+  | cons d rest ih =>
+      rcases axis with ⟨value,bound⟩
+      cases value with
+      | zero => rfl
+      | succ k =>
+          simp only [eraseAxis,List.length_cons,ih]
+          have positive : 0 < rest.length := Nat.lt_of_le_of_lt (Nat.zero_le k) (Nat.succ_lt_succ_iff.mp bound)
+          omega
+
 @[simp] theorem reduceShape_false (shape : TileShape) (axis : Fin shape.length) :
     reduceShape shape axis false = eraseAxis shape axis := rfl
 
