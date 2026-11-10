@@ -23,6 +23,18 @@ values have shape `[]`; a matrix `[M, D]` has index shape
 
 ## Supported Surface Syntax
 
+### Retained source quotations
+
+`retain_triton_signature signature in triton { ... }` retains the raw body
+and elaborates it with the ordinary call-signature frontend. The resulting
+`RetainedSource.kernel` has the same semantics as `with_triton_signature`;
+`triton_source_text source` extracts the original text as an executable string
+at elaboration time. This lets downstream artifact tooling compile the same
+quotation that a proof uses. It does not certify Python parsing, compiler
+execution, parameter binding or a binary's provenance. These remain separate
+obligations. See [the implementation](../VeriTile/Triton/DSL/RetainedSource.lean)
+and [regressions](../tests/lean/RetainedSource.lean).
+
 ### Control and Program IDs
 
 - `tl.program_id(axis)` and `tl.program_id(axis=axis)` where `axis` is a

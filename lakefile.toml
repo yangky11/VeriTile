@@ -63,6 +63,7 @@ globs = [
   "tests.lean.MatrixVectorSource",
   "tests.lean.PythonBodyParsing",
   "tests.lean.RawSourceIntegration",
+  "tests.lean.RetainedSource",
   "tests.lean.RawTupleAssignment",
   "tests.lean.ConstexprBodyBindings",
   "tests.lean.DynamicBlockPointerLayout",
