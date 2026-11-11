@@ -88,6 +88,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   supports source continuations and proves uniqueness of complete isolated
   traces. The retained atomic regression uses this to identify each worker’s
   exact primitive operand stream under arbitrary completed schedules.
+  [Flat source traces](VeriTile/Triton/Float/FlatWriteTrace.lean) compute those
+  events directly from actual straight-line statements, while
+  [read-only source traces](VeriTile/Triton/Float/ReadOnlyWriteTrace.lean)
+  prove that admitted computation prefixes, including nested loops, contribute
+  no memory writes. Both compose using the same source continuation machinery.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary

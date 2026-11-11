@@ -1,4 +1,5 @@
 import VeriTile.Triton.Float.AtomicInterleavingMetadata
+import VeriTile.Triton.Float.ReadOnlyWriteTrace
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Triton.Float.Control
 
@@ -84,6 +85,15 @@ theorem nested_preserves_ids {α : Type} [Inhabited α] (M : Algebra α) (initia
   obtain ⟨final,ran⟩ := nested_runs M initial
   exact ⟨final,ran,supported_run_pids M _ initial final (checkSupportedBody_sound _ nested_admitted) ran⟩
 
+theorem nested_empty_write_trace {α : Type} [Inhabited α] (M : Algebra α) (initial : State α) :
+    ∃ final, exec M nested.kernel initial = some final ∧
+      (Local.mk (commands nested.kernel.surfaceBody) initial).WriteAdvances M [] ⟨[],final⟩ := by
+  obtain ⟨final,executed⟩ := nested_runs M initial
+  refine ⟨final,executed,?_⟩
+  apply readOnly_body_writeTrace M _ initial final (checkSupportedBody_sound _ nested_admitted) ?_ executed
+  simp [nested,ComputeKernel.surfaceBody,readOnlyBody,readOnly]
+
+#axiomsClean nested_empty_write_trace
 #axiomsClean nested_preserves_ids
 #axiomsClean nested_admitted
 #axiomsClean vector_atomic_rejected

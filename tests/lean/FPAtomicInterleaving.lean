@@ -1,5 +1,6 @@
 import VeriTile.Triton.Float.AtomicInterleavingCorrect
 import VeriTile.Triton.Float.AtomicInterleavingTraceComposition
+import VeriTile.Triton.Float.FlatWriteTrace
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Meta.StatementAudit
 
@@ -215,6 +216,26 @@ theorem exact_atomic_streams (after : State Nat) (executed : Run jobs starting a
   rw [backend_lookup i,initial_local i] at traced
   exact (traced.complete_unique rfl (source_trace ((job i.val).initial starting) (i.val+1) (payload_read i.val)) rfl).1
 
+def stagedSource : RetainedSource :=
+  let observed : RegionName := "observed"
+  retain_triton_signature signature in triton {
+    adjusted = payload + 0.0
+    tl.atomic_max(observed, adjusted)
+  }
+
+theorem staged_source_trace (initial final : State Nat) (value : Nat)
+    (payload : initial.regs .real [] "payload" = some (fun _ => value))
+    (executed : exec arithmetic stagedSource.kernel initial = some final) :
+    (Local.mk (commands stagedSource.kernel.surfaceBody) initial).WriteAdvances arithmetic [contribution value] ⟨[],final⟩ := by
+  refine flatWriteEvents_trace arithmetic _ initial final ?_ executed [contribution value] ?_
+  · simp [stagedSource,ComputeKernel.surfaceBody,leafSupported]
+  · have scalarIndices : TileShape.allIndices [] = [()] := rfl
+    simp [stagedSource,ComputeKernel.surfaceBody,flatWriteEvents,leafWriteEvents,
+      step,evalExpr,evalComputeOp_alg,evalOp_unfold,atomicReductionEvents,atomicEvents,atomicAddition,writeMask,MemoryWrite.lanes,
+      atomicReduction,atomicAdd,arithmetic_cast,arithmetic_reduce,arithmetic_literal,arithmetic_add,payload,scalarIndices,
+      Region.cast,ComputeDType.eraseDType,ofFloat,toFloat,numeric,bop,contribution]
+
+#axiomsClean staged_source_trace
 #axiomsClean exact_atomic_streams
 #axiomsClean source_events
 #axiomsClean source_trace
