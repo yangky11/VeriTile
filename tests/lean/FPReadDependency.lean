@@ -1,5 +1,5 @@
 import VeriTile.Triton.Float.ComputeReadDependency
-import VeriTile.Triton.Float.AtomicInterleavingProjection
+import VeriTile.Triton.Float.AtomicInterleavingSafeProjection
 import VeriTile.Triton.DSL.RetainedSource
 
 /-! Retained-source regressions include a nested masked fallback read and a
@@ -68,6 +68,24 @@ theorem worker_grid_projects {α : Type} [Inhabited α] (input out observation :
     rw [sources index]
     exact worker_dependencies input out observation
 
+theorem worker_grid_safe {α : Type} [Inhabited α] (input out observation : RegionName)
+    (outSeparate : out ≠ input) (observationSeparate : observation ≠ input)
+    (jobs : List (Invocation α)) (before after : State α) (bounds : RegionName → Nat)
+    (sources : ∀ i : Fin jobs.length, jobs[i].kernel = (worker input out observation).kernel)
+    (sourceSafe : ∀ i : Fin jobs.length, jobs[i].Safe bounds before)
+    (executed : Interleaved.Run jobs before after) :
+    Interleaved.Safe jobs bounds executed.schedule (Interleaved.initial jobs before) := by
+  apply Interleaved.run_safe jobs (fun region => region = input) bounds before executed.schedule executed.result
+  · intro i
+    rw [sources i]
+    exact worker_readOnly input out observation outSeparate observationSeparate
+  · intro i
+    rw [sources i]
+    exact worker_dependencies input out observation
+  · exact sourceSafe
+  · exact executed.executed
+
+#axiomsClean worker_grid_safe
 #axiomsClean worker_dependencies
 #axiomsClean worker_grid_projects
 theorem worker_alias_rejected (input observation : RegionName) :

@@ -59,6 +59,9 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   The [worker projection proof](VeriTile/Triton/Float/AtomicInterleavingProjection.lean)
   relates every completed arbitrary schedule to actual isolated source execution
   for each worker, preserving its control, registers and declared input regions.
+  [Safety transport](VeriTile/Triton/Float/AtomicInterleavingSafeProjection.lean)
+  derives safety of every successful shared-memory schedule from the existing
+  sequential source trace-safety certificates and those dependencies.
   It does not assert equality of writable memory, commute atomic destination
   words or establish a complete concurrent numerical kernel contract.
   These results do not identify different atomic orders, prove native ordinary
