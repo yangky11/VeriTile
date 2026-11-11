@@ -75,6 +75,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   connects a selected body visit and later preservation to the completed source
   loop; its [regression](tests/lean/FPSignedLoopReadback.lean) exercises a
   negative start, non-unit stride and overshooting exit.
+  [Ordered range refinement](VeriTile/Triton/Float/RangeRefinement.lean)
+  connects actual strided execution to a list fold from a per-iteration
+  relation, with proved ceiling-division coverage for zero-based ranges.
+  Its [regression](tests/lean/FPRangeRefinement.lean) distinguishes ordered
+  updates and covers nonzero starts, partial final tiles and empty ranges.
   [Write traces](VeriTile/Triton/Float/AtomicInterleavingWriteTrace.lean)
   instrument actual scheduled source statements and reconstruct each final
   memory word by replaying its primitive writes from the actual seed. The
