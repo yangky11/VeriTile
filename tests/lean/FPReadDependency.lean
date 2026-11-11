@@ -1,5 +1,5 @@
 import VeriTile.Triton.Float.ComputeReadDependency
-import VeriTile.Triton.Float.AtomicInterleavingReadOnly
+import VeriTile.Triton.Float.AtomicInterleavingProjection
 import VeriTile.Triton.DSL.RetainedSource
 
 /-! Retained-source regressions include a nested masked fallback read and a
@@ -48,6 +48,28 @@ theorem worker_grid_preserves_input {α : Type} [Inhabited α] (input out observ
     exact worker_readOnly input out observation outSeparate observationSeparate
   · rfl
 
+theorem worker_dependencies (input out observation : RegionName) :
+    bodyDependencies (fun region => region = input) (worker input out observation).kernel.surfaceBody := by
+  simp only [worker,ComputeKernel.surfaceBody,bodyDependencies,readDependencies,accessReads,maskReads]
+  repeat first | (solve | simp [Region.cast]) | constructor
+
+theorem worker_grid_projects {α : Type} [Inhabited α] (input out observation : RegionName)
+    (outSeparate : out ≠ input) (observationSeparate : observation ≠ input)
+    (jobs : List (Invocation α)) (before after : State α)
+    (sources : ∀ i : Fin jobs.length, jobs[i].kernel = (worker input out observation).kernel)
+    (executed : Interleaved.Run jobs before after) (i : Fin jobs.length) :
+    ∃ isolated, jobs[i].run before = some isolated ∧
+      isolated.AgreesOn (fun region => region = input) (executed.result.focus i).state := by
+  apply Interleaved.Run.project jobs (fun region => region = input) before after executed
+  · intro index
+    rw [sources index]
+    exact worker_readOnly input out observation outSeparate observationSeparate
+  · intro index
+    rw [sources index]
+    exact worker_dependencies input out observation
+
+#axiomsClean worker_dependencies
+#axiomsClean worker_grid_projects
 theorem worker_alias_rejected (input observation : RegionName) :
     ¬ readOnlyBody (fun region => region = input) (worker input input observation).kernel.surfaceBody := by
   simp [worker,ComputeKernel.surfaceBody,readOnlyBody,readOnly,accessOutside,Region.cast]

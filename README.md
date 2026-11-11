@@ -56,8 +56,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   typed dot accumulation and reshape/reduction operands. A separate named-region
   write check proves read-only memory preservation under arbitrary successful
   schedules, including looped stores and discard-result scalar atomic updates.
-  These proofs do not commute atomic destination words or establish a complete
-  concurrent numerical kernel contract.
+  The [worker projection proof](VeriTile/Triton/Float/AtomicInterleavingProjection.lean)
+  relates every completed arbitrary schedule to actual isolated source execution
+  for each worker, preserving its control, registers and declared input regions.
+  It does not assert equality of writable memory, commute atomic destination
+  words or establish a complete concurrent numerical kernel contract.
   These results do not identify different atomic orders, prove native ordinary
   access independence, or cover barriers, async effects and vector atomics.
   [Regressions](tests/lean/FPAtomicCompletion.lean) cover retained nested loops,
