@@ -103,6 +103,9 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   value history to those positions without an injectivity assumption, retaining
   every worker's full stream even when operands coincide. The
   [regression](tests/lean/FPAtomicStreams.lean) checks this equal-value case.
+  [Filtered replay](VeriTile/Triton/Float/FilteredWriteReplay.lean) removes
+  writes only when they are proved to frame the observed cell, preserving
+  the selected events' order and actual initial word.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
