@@ -463,6 +463,17 @@ definitions live in `VeriTile.Triton.Correctness` and `VeriTile.Triton.Float`; s
 the compute/algorithm split and bitcast
 policy.
 
+The Structural evaluator also supports [interpreted comparisons](../VeriTile/Triton/Float/ComparisonInterpretation.lean):
+symbolic arithmetic can retain its expression trees while comparison callbacks
+evaluate operands in a supplied numerical carrier. The adapter preserves source
+precision, dtype, broadcast coordinates and unavailable callbacks. Its local
+evaluation theorems do not assume that a whole expression or program commutes
+with interpretation, nor do they impose reflexive equality (which would erase
+NaN self-inequality). [Regression proofs](../tests/lean/ComparisonInterpretation.lean)
+cover equal numerical values with distinct symbolic tags, nonreflexive equality,
+and missing callbacks on empty tiles. These are model transport results, not
+hardware arithmetic guarantees.
+
 ## Floating atomic reductions and interleavings
 
 The [Structural evaluator](../VeriTile/Triton/Float/Structural.lean) accepts

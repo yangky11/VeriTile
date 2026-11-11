@@ -49,6 +49,7 @@ name = "FPFrontendRegressions"
 globs = [
   "tests.lean.FPDebugBarrier",
   "tests.lean.InductorExtrema",
+  "tests.lean.ComparisonInterpretation",
   "tests.lean.ConditionalCast",
   "tests.lean.RegisterDTypeLoad",
   "tests.lean.FPExpandDimsPrecision",
