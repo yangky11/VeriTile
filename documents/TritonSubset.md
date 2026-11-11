@@ -125,7 +125,16 @@ Supported channels:
 
 - Arithmetic: `+`, `-`, `*`, `/` on numeric values.
   Mixed-channel arithmetic is rejected by the DSL.
-- Integer floor division and remainder: `//` and `%` on `.nat` / `.int`.
+- Runtime integer division and remainder: `//` and `%` on `.nat` / `.int`.
+  The natural channel uses floor division; the signed channel uses truncation
+  toward zero and its corresponding remainder. Integer source literals inherit
+  the other operand's integer context, including negative signed literals and
+  literal-left expressions. Floating literals such as `2.0` remain rejected in
+  these integer operations; no arbitrary floating-to-integer cast is inserted.
+  Address inference traverses loads nested beneath casts and expressions.
+  Integer offsets used only by such loads remain integer dependencies, while
+  the loaded value retains its declared floating dtype. Floating address
+  literals are rejected instead of silently coerced.
 - `tl.cdiv(x, y)` on `.nat`, lowered as `(x + y - 1) / y` with the current
   mathematical `Nat` semantics.
 - Pointwise comparisons: `<`, `<=`, `==`, `>`, `>=`, `!=` on `.real` or
@@ -168,6 +177,8 @@ Supported channels:
   reshape dimensions support Nat constexpr addition and multiplication.
   `Core.ReshapeIndex` proves arbitrary-rank row-major offset preservation,
   round trips, and grouped-column coordinates without enumerating tiles.
+  `Core.GroupedFlip` proves that reshape/flip/reshape reverses only the
+  minor-axis lane, preserving each row and group for arbitrary group widths.
 - Broadcasting is ND and follows the current `Broadcast` witness:
   same dimension, scalar-to-tile, or dimension `1` expanded to the other side.
   The DSL constructs the broadcast proof syntactically, so equivalent but

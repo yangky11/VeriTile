@@ -303,7 +303,7 @@ private partial def ptrUsesFromPtrExpr (assigned : Assigned) :
 /-- Loads inside assignments consume local pointer bindings just as stores
 do. Traverse casts and nested expressions too, so address dependencies reach
 the offsets used to build a pointer even if it is only ever read. -/
-private partial def readPtrUses (assigned : Assigned) (raw : Syntax) : List String :=
+private partial def loadPointerExpressions (raw : Syntax) : List (TSyntax `tritonExpr) :=
   let e : TSyntax `tritonExpr := ⟨raw⟩
   let here := match e with
     | `(tritonExpr| tl.load($p:tritonExpr, $_mask:tritonExpr $[, $_kwargs:tritonMemKwarg]*).to($_dt:tritonDType))
@@ -312,13 +312,21 @@ private partial def readPtrUses (assigned : Assigned) (raw : Syntax) : List Stri
     | `(tritonExpr| tl.load($p:tritonExpr $[, $_kwargs:tritonMemKwarg]*).to($_dt:ident))
     | `(tritonExpr| tl.load($p:tritonExpr, $_mask:tritonExpr $[, $_kwargs:tritonMemKwarg]*).to($_base:ident.$_field:ident))
     | `(tritonExpr| tl.load($p:tritonExpr $[, $_kwargs:tritonMemKwarg]*).to($_base:ident.$_field:ident)) =>
-        ptrUsesFromPtrExpr assigned p
+        [p]
     | `(tritonExpr| tl.load($p:tritonExpr, $_mask:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
-        ptrUsesFromPtrExpr assigned p
+        [p]
     | `(tritonExpr| tl.load($p:tritonExpr $[, $_kwargs:tritonMemKwarg]*)) =>
-        ptrUsesFromPtrExpr assigned p
+        [p]
     | _ => []
-  here ++ raw.getArgs.toList.flatMap (readPtrUses assigned)
+  here ++ raw.getArgs.toList.flatMap loadPointerExpressions
+
+/-- Follow the same nested loads for both local pointer uses and address
+integer dependencies. Casts around a load do not change its address channel. -/
+private def readPtrUses (assigned : Assigned) (raw : Syntax) : List String :=
+  (loadPointerExpressions raw).flatMap (ptrUsesFromPtrExpr assigned)
+
+private def readOffsetPins (assigned : Assigned) (raw : Syntax) : List String :=
+  (loadPointerExpressions raw).flatMap (pinsFromPtrExpr assigned)
 
 /-- Conditional comparison dependencies. Comparisons are not always Nat
 comparisons (`cur_logits > 0` is real), so we only use these after the
@@ -481,7 +489,8 @@ private def ScanInfo.append (a b : ScanInfo) : ScanInfo :=
 
 private def assignmentInfo (assigned : Assigned) (lhs : List String)
     (rhs : List (TSyntax `tritonExpr)) : ScanInfo :=
-  let directPins := rhs.foldl (fun acc e => acc ++ directPinsFromExpr assigned e) []
+  let directPins := rhs.foldl (fun acc e =>
+    acc ++ directPinsFromExpr assigned e ++ readOffsetPins assigned e.raw) []
   let cmpDeps := rhs.foldl (fun acc e => acc ++ cmpDepsFromExpr e) []
   let natDeps := (lhs.zip rhs).map (fun (l, e) => (l, natDepsFromAssignedExpr e))
   let ptrDeps := (lhs.zip rhs).map (fun (l, e) =>
