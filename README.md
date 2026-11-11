@@ -106,6 +106,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   [Filtered replay](VeriTile/Triton/Float/FilteredWriteReplay.lean) removes
   writes only when they are proved to frame the observed cell, preserving
   the selected events' order and actual initial word.
+  [Mixed primitive interpretation](VeriTile/Triton/Float/MixedInterpretation.lean)
+  composes scalar, complete tile-dot, maximum, minimum and ordered atomic call
+  labels in one interpreter, with a [nested-call regression](tests/lean/FPMixedInterpretation.lean).
+  It preserves primitive precision, operands and the original atomic seed;
+  it supplies no whole-kernel or hardware-correctness premise.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
