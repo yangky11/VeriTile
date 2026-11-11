@@ -559,6 +559,16 @@ partial def expandMinMax (expandExpr : ExprExpander) (env : Env) (ctx : String) 
     (a b : TSyntax `tritonExpr) : MacroM EOut := do
   let a' ← expandExpr env a
   let b' ← expandExpr env b
+  -- Triton 3.5.1 core.minimum/maximum explicitly promote BF16 operands
+  -- before semantic binary promotion (including BF16/BF16 and literals).
+  -- Retain the BF16 storage read/cast, then use FP32 arithmetic downstream.
+  let promoteBfloat (out : EOut) : MacroM EOut := do
+    if out.dtype == .bf16 then
+      let term ← realMathTerm ctx out
+      pure ⟨term, .real, out.shape, some (← fp32ComputeExpr term), some .fp32⟩
+    else pure out
+  let a' ← promoteBfloat a'
+  let b' ← promoteBfloat b'
   let a' ←
     if b'.dtype == .nat && a'.dtype == .real then
       match a with

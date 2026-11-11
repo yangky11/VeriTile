@@ -383,3 +383,12 @@ Zhaoyu Li, Mike He, and Aarti Gupta.
 ## License
 
 [MIT](LICENSE) © 2026 Zenan Li.
+
+The floating min/max frontend now follows Triton 3.5.1’s explicit BF16-to-FP32
+promotion before elementwise `tl.minimum` and `tl.maximum`, including two BF16
+operands and a BF16 tensor with a literal. The retained-source regression in
+[`FloatMinMaxPromotion`](tests/lean/FloatMinMaxPromotion.lean) checks the FP32
+square after a BF16 maximum. Earlier certificates that kept this square in
+BF16 must be regenerated; a passing proof of that model did not establish
+Triton source fidelity. The rule follows
+[Triton core.py](https://github.com/triton-lang/triton/blob/v3.5.1/python/triton/language/core.py#L2270-L2306).
