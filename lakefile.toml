@@ -69,6 +69,7 @@ globs = [
   "tests.lean.FPAtomicCompletion",
   "tests.lean.FPReadDependency",
   "tests.lean.FPCellOwnership",
+  "tests.lean.FPSignedLoopReadback",
   "tests.lean.FPAtomicInterleaving",
   "tests.lean.ConstexprBodyBindings",
   "tests.lean.DynamicBlockPointerLayout",

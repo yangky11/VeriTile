@@ -71,6 +71,10 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   [Permission framing](VeriTile/Triton/Float/AtomicInterleavingPermissionFrame.lean)
   preserves every cell outside all workers’ ordinary and atomic footprints,
   including padding inside a shared output allocation.
+  [Signed-loop readback](VeriTile/Triton/Float/SignedLoopReadback.lean)
+  connects a selected body visit and later preservation to the completed source
+  loop; its [regression](tests/lean/FPSignedLoopReadback.lean) exercises a
+  negative start, non-unit stride and overshooting exit.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
