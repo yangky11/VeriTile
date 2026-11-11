@@ -115,6 +115,7 @@ globs = [
   "tests.lean.StridedLayout",
   "tests.lean.FmaContraction",
   "tests.lean.GroupedFlip",
+  "tests.lean.SignedClamp",
   "tests.lean.IntegralLiteral",
   "tests.lean.NestedLoadAddress",
   "tests.lean.FPMaterializedProgramIO",

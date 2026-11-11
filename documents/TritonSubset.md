@@ -609,11 +609,11 @@ A lifter is only useful for kernels whose operations are already representable.
   `atomic_xchg` / `atomic_cas` algorithm slices.
 - Async copy / TMA / shared-memory staging.
 - Barriers and inter-program or inter-warp synchronization.
-- Full grid launch execution. `GridIndex` / `Kernel.ForAllPrograms` provide a
-  theorem surface for quantifying over every program instance in an ND grid,
-  but VeriTile still does not model a sequential or concurrent launch executor,
-  overlapping ordinary writes, races, full CUDA atomic memory ordering, or
-  scheduling.
+- Unrestricted CUDA launch and scheduling.
+  [Ordinary independent-program grids](../VeriTile/Triton/Float/OrdinaryProgramIO.lean)
+  and supported [statement-level interleavings](../VeriTile/Triton/Float/AtomicInterleaving.lean)
+  have execution semantics and source connections. Overlapping ordinary writes,
+  races and full CUDA atomic memory ordering remain outside their admitted scope.
 - Caches and performance hints such as `cache_modifier`, `eviction_policy`,
   `volatile`, or `is_volatile`.
 - Higher-rank bracket slicing beyond the currently supported rank-1
@@ -628,6 +628,14 @@ A lifter is only useful for kernels whose operations are already representable.
   Tile-lane bounds include padded, masked-off coordinates. Callers must connect
   their actual source expressions to those coordinates; this does not supply
   general integer-source semantics or prove CUDA pointer allocation/execution.
+  [Signed zero-clamping](../VeriTile/Triton/Memory/SignedClamp.lean) additionally
+  proves that word subtraction of two admitted nonnegative signed inputs,
+  followed by a signed comparison and zero selection, equals natural clipped
+  subtraction. Negative intermediate values are allowed; signed overflow is
+  excluded by the input bounds. The generic width proof and 32-/64-bit boundary
+  regressions pass, including an out-of-range counterexample. This is an
+  explicit word-expression theorem, not a change to the mathematical DSL
+  channels or a proof of an arbitrary compiler lowering.
 
 ## Documentation Generation
 
