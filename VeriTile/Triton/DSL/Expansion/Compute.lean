@@ -424,10 +424,19 @@ private def signedBitOperands (a b : TSyntax `tritonExpr) (aa bb : EOut) :
     | none => pure aa
   pure (aa, bb)
 
+/-- Only unconverted integer literals inherit a natural bitwise operand.
+Floating literals and explicit casts remain errors for these operations. -/
+private def naturalBitOperands (a b : TSyntax `tritonExpr) (aa bb : EOut) :
+    MacroM (EOut × EOut) := do
+  let bb ← if aa.dtype == .nat then literalInIntegerContext .nat b bb else pure bb
+  let aa ← if bb.dtype == .nat then literalInIntegerContext .nat a aa else pure aa
+  pure (aa, bb)
+
 partial def expandNatBitwise (expandExpr : ExprExpander) (env : Env) (ctx : String) (op : TSyntax `term)
     (a b : TSyntax `tritonExpr) : MacroM EOut := do
   let a' ← expandExpr env a
   let b' ← expandExpr env b
+  let (a', b') ← naturalBitOperands a b a' b'
   ensureAlgorithmOnly ctx a'
   ensureAlgorithmOnly ctx b'
   if let some width := signedStorageWidth? a'.dtype then
@@ -465,6 +474,7 @@ partial def expandBoolOrNatBitwise (expandExpr : ExprExpander) (env : Env) (ctx 
     (boolOp natOp : TSyntax `term) (a b : TSyntax `tritonExpr) : MacroM EOut := do
   let a' ← expandExpr env a
   let b' ← expandExpr env b
+  let (a', b') ← naturalBitOperands a b a' b'
   ensureAlgorithmOnly ctx a'
   ensureAlgorithmOnly ctx b'
   let (a', b') ← signedBitOperands a b a' b'

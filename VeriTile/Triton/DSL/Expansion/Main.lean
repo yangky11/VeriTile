@@ -848,6 +848,7 @@ partial def expandIteFromCond (env : Env) (c' : EOut)
 partial def expandBoolCondition (env : Env) (cond : TSyntax `tritonExpr) :
     MacroM EOut := do
   match cond with
+  | `(tritonExpr| ($inner:tritonExpr)) => expandBoolCondition env inner
   | `(tritonExpr| $a:ident == $b:str) =>
       if env.any (fun entry => entry.1 == a.getId.toString) then
         expandExpr env cond
@@ -1907,7 +1908,7 @@ partial def expandExpr (env : Env) (stx : TSyntax `tritonExpr) : MacroM EOut := 
   | `(tritonExpr| $a:tritonExpr & $b:tritonExpr) => do
       expandBoolOrNatBitwise expandExpr env "`&`" (← `(Op.boolAnd)) (← `(Op.bitAnd)) a b
   | `(tritonExpr| $a:tritonExpr and $b:tritonExpr) => do
-      expandBoolBin expandExpr env "`and`" (← `(Op.boolAnd)) a b
+      expandBoolBin expandBoolCondition env "`and`" (← `(Op.boolAnd)) a b
   | `(tritonExpr| $a:tritonExpr | $b:tritonExpr) => do
       expandBoolOrNatBitwise expandExpr env "`|`" (← `(Op.boolOr)) (← `(Op.bitOr)) a b
   | `(tritonExpr| $a:tritonExpr ^ $b:tritonExpr) => do

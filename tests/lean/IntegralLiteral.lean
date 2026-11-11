@@ -51,4 +51,56 @@ def floatingRemainder : ComputeKernel := triton {
   lane = h % 2.0
 }
 
+def naturalBits : ComputeKernel := triton {
+  offsets = tl.arange(0, 8)
+  flipped = offsets ^ 1
+  masked = 3 & offsets
+  joined = offsets | 2
+  shifted = offsets << 1
+  restored = offsets >> 1
+}
+
+example : naturalBits.surfaceBody[1]? = some
+    (.assign .nat [8] "flipped" (.alg (.bitXor .scalarR (.ref .nat [8] "offsets") (.constNat 1)))) := rfl
+example : naturalBits.surfaceBody[2]? = some
+    (.assign .nat [8] "masked" (.alg (.bitAnd .scalarL (.constNat 3) (.ref .nat [8] "offsets")))) := rfl
+example : naturalBits.surfaceBody[3]? = some
+    (.assign .nat [8] "joined" (.alg (.bitOr .scalarR (.ref .nat [8] "offsets") (.constNat 2)))) := rfl
+example : naturalBits.surfaceBody[4]? = some
+    (.assign .nat [8] "shifted" (.alg (.shiftLeft .scalarR (.ref .nat [8] "offsets") (.constNat 1)))) := rfl
+example : naturalBits.surfaceBody[5]? = some
+    (.assign .nat [8] "restored" (.alg (.shiftRight .scalarR (.ref .nat [8] "offsets") (.constNat 1)))) := rfl
+
+/-- error: `^`: dtype mismatch -/
+#guard_msgs in
+def floatingXor : ComputeKernel := triton {
+  offsets = tl.arange(0, 8)
+  flipped = offsets ^ 1.0
+}
+
+/-- error: `^`: compute-only expressions such as runtime tl.bitcast must be assigned or stored directly before algorithm-layer composition -/
+#guard_msgs in
+def convertedXor : ComputeKernel := triton {
+  offsets = tl.arange(0, 8)
+  flipped = offsets ^ (1).to(tl.float32)
+}
+
+/-- A constexpr flag inside a runtime conjunction retains Boolean typing;
+loop counters remain runtime natural registers. -/
+def compoundFlag (enabled : Bool) : ComputeKernel := triton {
+  for kind in tl.static_range(2) {
+    if (enabled) and kind == 1 {
+      result = kind
+    }
+  }
+}
+
+theorem compound_flag_structure (enabled : Bool) :
+    (compoundFlag enabled).surfaceBody =
+      [.forLoop "kind" 2 [.ifThen
+        (.boolAnd .nil (.constBool enabled)
+          (.eq .nat .nil (.ref .nat [] "kind") (.constNat 1)))
+        [.assign .nat [] "result" (.alg (.ref .nat [] "kind"))]]] := rfl
+
+#axiomsClean compound_flag_structure
 end VeriTile.Tests.IntegralLiteral
