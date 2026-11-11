@@ -89,3 +89,52 @@ example (a b c : Term Nat) :
   unless strict == 0 && fused == 0x28800000 do
     throw (IO.userError s!"unexpected host subtract-FMA counterexample: {strict}, {fused}")
   : IO Unit)
+
+-- An untagged source needs a distinct explicit native FP32 policy. The old
+-- addition/subtraction witnesses remain strict about source precision tags.
+example (a b c : Term Nat) :
+    contractRoot .left ((a.mulUnscoped b).addUnscoped c) = none := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (c.subUnscoped (a.mulUnscoped b)) .subtract = none := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .left ((a.mulUnscoped b).addUnscoped c) .addUnscoped32 =
+      some (a.fma32 b c) := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (c.addUnscoped (a.mulUnscoped b)) .addUnscoped32 =
+      some (a.fma32 b c) := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .left ((a.mulUnscoped b).subUnscoped c) .subtractUnscoped32 =
+      some (a.fma32 b c.neg32) := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (c.subUnscoped (a.mulUnscoped b)) .subtractUnscoped32 =
+      some (a.neg32.fma32 b c) := rfl
+
+-- Mixed scopes, explicit other precisions and intervening casts are rejected.
+example (a b c : Term Nat) :
+    contractRoot .right (c.subUnscoped (a.mul32 b)) .subtractUnscoped32 = none := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (c.sub32 (a.mulUnscoped b)) .subtractUnscoped32 = none := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (.app (.binary (some .fp64) .real .sub)
+      [c,a.mulUnscoped b]) .subtractUnscoped32 = none := rfl
+
+example (a b c : Term Nat) :
+    contractRoot .right (c.subUnscoped (.app (.cast none .real .bf16)
+      [a.mulUnscoped b])) .subtractUnscoped32 = none := rfl
+
+example (a b c : Term Nat) :
+    contractAll [{path := [0,0],side := .right,combine := .subtractUnscoped32}]
+      (stored (c.subUnscoped (a.mulUnscoped b))) =
+        some (stored (a.neg32.fma32 b c)) := rfl
+
+example (a b c : Term Nat) :
+    FmaContraction (stored (c.subUnscoped (a.mulUnscoped b)))
+        (stored (a.neg32.fma32 b c)) :=
+  contractAll_sound [{path := [0,0],side := .right,combine := .subtractUnscoped32}] _ _ rfl

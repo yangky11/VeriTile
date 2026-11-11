@@ -741,7 +741,15 @@ paths and sequential edit lists lift this check through unchanged contexts;
 out-of-range or nonmatching edits fail. Composition
 preserves the multiplicity of input leaves. Different output uses may choose
 different contractions. Casts and precision boundaries cannot be crossed by the
-local rewrite.
+local rewrite. Subtraction has an explicit opt-in edit mode, preserving the
+product's operand order and introducing the required negation. Untagged
+real-channel multiply/add or multiply/subtract trees require the distinct
+`addUnscoped32` or `subtractUnscoped32` mode. The original `add`/`subtract`
+modes continue to reject these trees; mixed tagged/untagged scopes are also
+rejected. An untagged source is not automatically interpreted as FP32: the
+consumer must separately connect its individual native primitives to that
+declared numerical policy. The checker preserves the original source tree and
+constructs a selected FP32 FMA target; it does not insert source precision tags.
 
 This relation is **not** `TermEq`, `≡[R]`, exact word equality, numerical admission
 or a whole-kernel implementation certificate. Evaluating the selected target

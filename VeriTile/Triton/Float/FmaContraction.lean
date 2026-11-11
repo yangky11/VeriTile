@@ -2,8 +2,10 @@ import VeriTile.Triton.Float.Equational
 import VeriTile.Meta.StatementAudit
 
 /-! An explicit compiler-contraction relation, not floating-point equality.
-Only an FP32 multiply directly consumed by an FP32 add, or explicitly
-selected subtraction, can contract. Casts,
+An FP32 multiply directly consumed by an FP32 add, or explicitly
+selected subtraction, can contract. Untagged real-channel operations require
+a separate opt-in declaring FP32 native contraction; their source tags stay
+untouched. This declaration is not inferred from the real dtype. Casts,
 other precisions, dot calls and operand order inside the product are retained.
 Different store uses may carry different derivations. Interpreting the target
 with word arithmetic specifies those choices without asserting that strict
@@ -21,6 +23,16 @@ def Term.sub32 (a b : Term α) : Term α :=
 def Term.neg32 (a : Term α) : Term α :=
   .app (.unary (some .fp32) (.neg .real)) [a]
 
+/-- Untagged source arithmetic. These helpers do not assign it a precision. -/
+def Term.mulUnscoped (a b : Term α) : Term α :=
+  .app (.binary none .real .mul) [a,b]
+
+def Term.addUnscoped (a b : Term α) : Term α :=
+  .app (.binary none .real .add) [a,b]
+
+def Term.subUnscoped (a b : Term α) : Term α :=
+  .app (.binary none .real .sub) [a,b]
+
 def Term.fma32 (a b c : Term α) : Term α := .app (.fma .fp32) [a,b,c]
 
 inductive FmaContraction : Term α → Term α → Prop where
@@ -37,18 +49,32 @@ inductive FmaContraction : Term α → Term α → Prop where
   | subtractRight (a b c : Term α) :
       FmaContraction (c.sub32 (a.mul32 b)) (a.neg32.fma32 b c)
 
+  /-- The consumer must declare the native FP32 interpretation of these
+  untagged operations. These constructors assert no numerical equality. -/
+  | unscopedLeft32 (a b c : Term α) :
+      FmaContraction ((a.mulUnscoped b).addUnscoped c) (a.fma32 b c)
+  | unscopedRight32 (a b c : Term α) :
+      FmaContraction (c.addUnscoped (a.mulUnscoped b)) (a.fma32 b c)
+  | unscopedSubtractLeft32 (a b c : Term α) :
+      FmaContraction ((a.mulUnscoped b).subUnscoped c) (a.fma32 b c.neg32)
+  | unscopedSubtractRight32 (a b c : Term α) :
+      FmaContraction (c.subUnscoped (a.mulUnscoped b)) (a.neg32.fma32 b c)
+
 /-- Subtraction must be opted into by the edit witness. Existing addition
-choices do not accept subtraction or gain new alternatives. -/
+choices do not accept subtraction or gain new alternatives. Untagged sources
+require an explicit FP32 native-policy choice; tagged and untagged operations
+are never mixed by the checker. -/
 inductive FmaCombine where
-  | add | subtract
+  | add | subtract | addUnscoped32 | subtractUnscoped32
   deriving DecidableEq
 
 inductive FmaSide where
   | left | right
   deriving DecidableEq
 
-/-- A checked local rewrite. It cannot cross a cast, change a precision, swap
-product operands, or remove a term. The two possible choices remain explicit. -/
+/-- A checked local rewrite. It cannot cross a cast, change an explicit source
+precision, swap product operands, or remove a term. Untagged-to-FP32 contraction
+requires its own declared mode. The choices remain explicit. -/
 def contractRoot (side : FmaSide) (source : Term α)
     (combine : FmaCombine := .add) : Option (Term α) :=
   match combine, side, source with
@@ -60,6 +86,14 @@ def contractRoot (side : FmaSide) (source : Term α)
       [.app (.binary (some .fp32) .real .mul) [a,b], c] => some (a.fma32 b c.neg32)
   | .subtract, .right, .app (.binary (some .fp32) .real .sub)
       [c, .app (.binary (some .fp32) .real .mul) [a,b]] => some (a.neg32.fma32 b c)
+  | .addUnscoped32, .left, .app (.binary none .real .add)
+      [.app (.binary none .real .mul) [a,b], c] => some (a.fma32 b c)
+  | .addUnscoped32, .right, .app (.binary none .real .add)
+      [c, .app (.binary none .real .mul) [a,b]] => some (a.fma32 b c)
+  | .subtractUnscoped32, .left, .app (.binary none .real .sub)
+      [.app (.binary none .real .mul) [a,b], c] => some (a.fma32 b c.neg32)
+  | .subtractUnscoped32, .right, .app (.binary none .real .sub)
+      [c, .app (.binary none .real .mul) [a,b]] => some (a.neg32.fma32 b c)
   | _, _, _ => none
 
 theorem contractRoot_sound (side : FmaSide) (source target : Term α)
@@ -74,6 +108,14 @@ theorem contractRoot_sound (side : FmaSide) (source target : Term α)
     exact .subtractLeft _ _ _
   · cases accepted
     exact .subtractRight _ _ _
+  · cases accepted
+    exact .unscopedLeft32 _ _ _
+  · cases accepted
+    exact .unscopedRight32 _ _ _
+  · cases accepted
+    exact .unscopedSubtractLeft32 _ _ _
+  · cases accepted
+    exact .unscopedSubtractRight32 _ _ _
   · cases accepted
 
 /-- Operand positions are finite metadata supplied by a compiler witness. -/
@@ -155,6 +197,19 @@ theorem FmaContraction.inputs_perm {source target : Term α} (h : FmaContraction
     simp [Term.inputs,Term.sub32,Term.neg32,Term.mul32,Term.fma32,List.append_assoc]
   | subtractRight a b c =>
     simp only [Term.inputs,Term.sub32,Term.neg32,Term.mul32,Term.fma32,
+      List.flatMap_cons,List.flatMap_nil,List.append_nil]
+    simpa only [List.append_assoc] using List.perm_append_comm (l₁ := c.inputs) (l₂ := a.inputs ++ b.inputs)
+
+  | unscopedLeft32 a b c =>
+    simp [Term.inputs,Term.addUnscoped,Term.mulUnscoped,Term.fma32,List.append_assoc]
+  | unscopedRight32 a b c =>
+    simp only [Term.inputs,Term.addUnscoped,Term.mulUnscoped,Term.fma32,
+      List.flatMap_cons,List.flatMap_nil,List.append_nil]
+    simpa only [List.append_assoc] using List.perm_append_comm (l₁ := c.inputs) (l₂ := a.inputs ++ b.inputs)
+  | unscopedSubtractLeft32 a b c =>
+    simp [Term.inputs,Term.subUnscoped,Term.neg32,Term.mulUnscoped,Term.fma32,List.append_assoc]
+  | unscopedSubtractRight32 a b c =>
+    simp only [Term.inputs,Term.subUnscoped,Term.neg32,Term.mulUnscoped,Term.fma32,
       List.flatMap_cons,List.flatMap_nil,List.append_nil]
     simpa only [List.append_assoc] using List.perm_append_comm (l₁ := c.inputs) (l₂ := a.inputs ++ b.inputs)
 
