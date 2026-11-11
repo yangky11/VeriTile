@@ -1,4 +1,4 @@
-import VeriTile.Triton.Float.AtomicInterleavingPermissionPrefix
+import VeriTile.Triton.Float.AtomicInterleavingPermissionFrame
 import VeriTile.Triton.Float.ReadOnlyPermission
 import VeriTile.Triton.DSL.RetainedSource
 
@@ -55,6 +55,25 @@ theorem copy_grid_owned {α : Type} [Inhabited α] (input out : RegionName) (sep
       exact written.2.symm.trans member.2) i
   exact ⟨isolated,ran,cells out _ ⟨rfl,rfl⟩⟩
 
+/-- Padding within the output allocation and unrelated allocations survive every
+successful interleaving; no assumption about worker distinctness is needed. -/
+theorem copy_grid_frame {α : Type} [Inhabited α] (input out : RegionName) (separate : out ≠ input)
+    (jobs : List (Invocation α)) (before after : State α)
+    (sources : ∀ i : Fin jobs.length, jobs[i].kernel = (copyWorker input out).kernel)
+    (executed : Interleaved.Run jobs before after) (region : RegionName) (offset : Nat)
+    (outside : ∀ i : Fin jobs.length, ¬ owns out ((jobs[i].initial before).pids 0) region offset) :
+    after.mem region offset = before.mem region offset := by
+  apply Interleaved.Run.permission_frame jobs (fun region => region = input)
+    (fun i => owns out ((jobs[i].initial before).pids 0)) (fun _ _ _ => False)
+    before after executed
+    (by intro i; rw [sources i]; exact copy_readOnly input out separate)
+    (by intro i; rw [sources i]; exact copy_dependencies input out)
+    (by intro i; rw [sources i]; exact copy_permissions jobs[i].backend input out _)
+    region offset
+  intro i
+  exact ⟨outside i,not_false⟩
+
+#axiomsClean copy_grid_frame
 #axiomsClean copy_permissions
 #axiomsClean copy_readOnly
 #axiomsClean copy_dependencies

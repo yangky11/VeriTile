@@ -68,6 +68,9 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   Ordinary and atomic permissions are distinct; shared atomic destinations
   need not have an owner. A [retained-source regression](tests/lean/FPCellOwnership.lean)
   discharges those permissions for workers sharing one output allocation.
+  [Permission framing](VeriTile/Triton/Float/AtomicInterleavingPermissionFrame.lean)
+  preserves every cell outside all workers’ ordinary and atomic footprints,
+  including padding inside a shared output allocation.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
