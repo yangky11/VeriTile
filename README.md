@@ -84,6 +84,10 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   isolated source execution when protected read regions remain unchanged.
   Shared atomic old words remain part of the global replay. These traces do
   not yet identify atomic operands with an application graph.
+  [Trace composition](VeriTile/Triton/Float/AtomicInterleavingTraceComposition.lean)
+  supports source continuations and proves uniqueness of complete isolated
+  traces. The retained atomic regression uses this to identify each worker’s
+  exact primitive operand stream under arbitrary completed schedules.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary

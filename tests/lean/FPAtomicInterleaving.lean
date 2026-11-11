@@ -1,5 +1,5 @@
 import VeriTile.Triton.Float.AtomicInterleavingCorrect
-import VeriTile.Triton.Float.AtomicInterleavingTraceProjection
+import VeriTile.Triton.Float.AtomicInterleavingTraceComposition
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Meta.StatementAudit
 
@@ -183,6 +183,41 @@ theorem atomic_operand_streams (before after : State Nat) (executed : Run jobs b
         ((initial jobs before).locals i).WriteAdvances jobs[i].backend (workerEvents events i) ⟨[],isolated⟩ :=
   Run.project_trace jobs (fun _ => False) before after executed jobs_readOnly jobs_dependencies
 
+private def contribution (value : Nat) : MemoryWrite Nat :=
+  .atomic (.reduce .max) "observed" 0 .fp32 (fun old operand => old*10+operand) value
+
+private theorem source_events (state : State Nat) (value : Nat)
+    (payload : state.regs .real [] "payload" = some (fun _ => value)) :
+    (Local.mk sourceBody state).writeEvents arithmetic state.mem = some [contribution value] := by
+  have scalarIndices : TileShape.allIndices [] = [()] := rfl
+  simp [sourceBody,source,commands,Local.writeEvents,leafSupported,leafWriteEvents,
+    evalExpr,evalOp_unfold,atomicReductionEvents,atomicEvents,atomicAddition,writeMask,MemoryWrite.lanes,
+    arithmetic_cast,arithmetic_reduce,arithmetic_literal,arithmetic_add,payload,scalarIndices,
+    Region.cast,ofFloat,toFloat,numeric,bop,contribution]
+
+private theorem source_trace (state : State Nat) (value : Nat)
+    (payload : state.regs .real [] "payload" = some (fun _ => value)) :
+    (Local.mk sourceBody state).WriteAdvances arithmetic [contribution value]
+      ⟨[],state.write "observed" 0 (.mk .fp32 (((state.mem "observed" 0).read .fp32)*10+value))⟩ := by
+  apply Local.WriteAdvances.single arithmetic
+  · exact source_tick state state.mem value payload
+  · exact source_events state value payload
+
+/-- Projection plus complete-trace uniqueness identifies the actual atomic
+operand for each worker, independently of the shared update order. -/
+theorem exact_atomic_streams (after : State Nat) (executed : Run jobs starting after) :
+    ∃ events, runWriteEvents jobs executed.schedule (initial jobs starting) = some events ∧
+      ∀ i : Fin jobs.length, workerEvents events i = [contribution (i.val+1)] := by
+  obtain ⟨events,generated,projected⟩ := atomic_operand_streams starting after executed
+  refine ⟨events,generated,?_⟩
+  intro i
+  obtain ⟨isolated,_,traced⟩ := projected i
+  rw [backend_lookup i,initial_local i] at traced
+  exact (traced.complete_unique rfl (source_trace ((job i.val).initial starting) (i.val+1) (payload_read i.val)) rfl).1
+
+#axiomsClean exact_atomic_streams
+#axiomsClean source_events
+#axiomsClean source_trace
 #axiomsClean atomic_operand_streams
 #axiomsClean sequential_trace
 #axiomsClean alternating_trace
