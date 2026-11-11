@@ -44,6 +44,18 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   `ComputeCorrect.Realizes_without_Rounding`) at the trivial model. See the
   fused-vs-unfused SwiGLU showcase
   [`bench/examples/FusedSwiglu/Proofs/LegacyRealEquiv.lean`](bench/examples/FusedSwiglu/Proofs/LegacyRealEquiv.lean).
+- **Statement-level shared-memory scheduling**: the
+  [interleaving interpreter](VeriTile/Triton/Float/AtomicInterleaving.lean) retains
+  local registers and control stacks, with scalar atomic updates as individual
+  ticks. The [admission check](VeriTile/Triton/Float/AtomicInterleavingAdmission.lean)
+  proves recursive source support; [completion](VeriTile/Triton/Float/AtomicInterleavingTotal.lean)
+  constructs a complete finite tick schedule from successful source executions.
+  These results do not identify different atomic orders, prove native ordinary
+  access independence, or cover barriers, async effects and vector atomics.
+  [Regressions](tests/lean/FPAtomicCompletion.lean) cover retained nested loops,
+  complete grid witnesses and unsupported-effect rejection; the
+  [order-sensitive countermodel](tests/lean/FPAtomicInterleaving.lean) remains
+  separate. Reproduce with `lake build tests.lean.FPAtomicCompletion tests.lean.FPAtomicInterleaving`.
 - **Examples**: 183 current TritonBench-G task directories, with proof
   contracts for their selected repaired implementations. The [final contract review](./validation/contracts.json) records mathematical targets, implementation pairs, conditions and proof scope. See the
   [current source inventory](./documents/bench/current_source_acceptance.md) for checked

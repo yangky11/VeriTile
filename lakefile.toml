@@ -66,6 +66,8 @@ globs = [
   "tests.lean.RetainedSource",
   "tests.lean.RawTupleAssignment",
   "tests.lean.RetainedSplit",
+  "tests.lean.FPAtomicCompletion",
+  "tests.lean.FPAtomicInterleaving",
   "tests.lean.ConstexprBodyBindings",
   "tests.lean.DynamicBlockPointerLayout",
   "tests.lean.PolymorphicCallStorage",
