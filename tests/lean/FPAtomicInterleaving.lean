@@ -1,6 +1,7 @@
 import VeriTile.Triton.Float.AtomicInterleavingCorrect
 import VeriTile.Triton.Float.AtomicInterleavingTraceComposition
 import VeriTile.Triton.Float.FlatWriteTrace
+import VeriTile.Triton.Float.SignedLoopWriteTrace
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Meta.StatementAudit
 
@@ -235,6 +236,35 @@ theorem staged_source_trace (initial final : State Nat) (value : Nat)
       atomicReduction,atomicAdd,arithmetic_cast,arithmetic_reduce,arithmetic_literal,arithmetic_add,payload,scalarIndices,
       Region.cast,ComputeDType.eraseDType,ofFloat,toFloat,numeric,bop,contribution]
 
+/-- Three source atomic visits at -7, -3 and 1 retain the non-unit
+signed-loop order and leave the captured payload register available. -/
+theorem signed_atomic_trace (initial final : State Nat) (value : Nat)
+    (payload : initial.regs .real [] "payload" = some (fun _ => value))
+    (executed : rangeInt arithmetic "i" (-7) 2 4 source.kernel.surfaceBody initial = some final) :
+    (Local.mk [.integer "i" (-7) 2 4 source.kernel.surfaceBody] initial).WriteAdvances arithmetic
+      [contribution value,contribution value,contribution value] ⟨[],final⟩ := by
+  have traced := integer_writeTrace arithmetic "i" (-7) 2 4 source.kernel.surfaceBody
+    (fun _ => [contribution value])
+    (fun _ state => state.regs .real [] "payload" = some (fun _ => value))
+    (by
+      intro i before after _ bound ran
+      have bound' : (before.setReg "i" .int [] (fun _ => i)).regs .real [] "payload" = some (fun _ => value) := by
+        simpa using bound
+      have localTrace := source_trace (before.setReg "i" .int [] (fun _ => i)) value bound'
+      have scalarIndices : TileShape.allIndices [] = [()] := rfl
+      have finalEq : after = (before.setReg "i" .int [] (fun _ => i)).write "observed" 0
+          (.mk .fp32 (((before.mem "observed" 0).read .fp32)*10+value)) := by
+        simpa [source,ComputeKernel.surfaceBody,VeriTile.Triton.FP.Structural.run,step,evalExpr,evalOp_unfold,
+          atomicReduction,atomicAdd,atomicAddition,arithmetic_cast,arithmetic_reduce,
+          arithmetic_literal,arithmetic_add,bound,bound',scalarIndices,Region.cast,ofFloat,toFloat,numeric,bop]
+          using ran.symm
+      subst after
+      exact ⟨by simpa using bound,localTrace⟩)
+    initial final payload executed
+  convert traced using 1
+  simp [integerEvents]
+
+#axiomsClean signed_atomic_trace
 #axiomsClean staged_source_trace
 #axiomsClean exact_atomic_streams
 #axiomsClean source_events

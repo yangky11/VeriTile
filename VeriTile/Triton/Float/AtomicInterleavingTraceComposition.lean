@@ -42,6 +42,15 @@ theorem Local.WriteAdvances.append {M : Algebra α} {before after : Local α} {e
       rw [Local.writeEvents_append M first tail first.state.mem nonempty]
       exact emitted
 
+theorem writeTrace_body_append (M : Algebra α) (first second : List ComputeStmt)
+    (initial middle final : State α) (events extra : List (MemoryWrite α))
+    (one : (Local.mk (commands first) initial).WriteAdvances M events ⟨[],middle⟩)
+    (two : (Local.mk (commands second) middle).WriteAdvances M extra ⟨[],final⟩) :
+    (Local.mk (commands (first ++ second)) initial).WriteAdvances M (events ++ extra) ⟨[],final⟩ := by
+  have continued := one.append (commands second)
+  have combined := continued.trans (by simpa only [Local.append,List.nil_append] using two)
+  simpa only [commands,List.map_append,Local.append] using combined
+
 inductive Local.WriteSteps (M : Algebra α) : Local α → List (MemoryWrite α) → Local α → Prop where
   | refl (state : Local α) : WriteSteps M state [] state
   | head {before middle after : Local α} {events rest : List (MemoryWrite α)}
@@ -93,6 +102,7 @@ theorem Local.WriteAdvances.complete_unique {M : Algebra α} {first last other :
 #axiomsClean Local.WriteAdvances.trans
 #axiomsClean Local.writeEvents_append
 #axiomsClean Local.WriteAdvances.append
+#axiomsClean writeTrace_body_append
 #axiomsClean Local.WriteSteps.trans
 #axiomsClean Local.WriteAdvances.steps
 #axiomsClean Local.WriteSteps.complete_unique

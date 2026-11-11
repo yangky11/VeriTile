@@ -93,6 +93,9 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   [read-only source traces](VeriTile/Triton/Float/ReadOnlyWriteTrace.lean)
   prove that admitted computation prefixes, including nested loops, contribute
   no memory writes. Both compose using the same source continuation machinery.
+  [Signed-loop write traces](VeriTile/Triton/Float/SignedLoopWriteTrace.lean)
+  concatenate the proved body stream at every actual loop visit. The retained
+  atomic regression checks three visits with a negative start and stride four.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
