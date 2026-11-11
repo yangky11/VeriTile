@@ -52,6 +52,12 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   constructs a complete finite tick schedule from successful source executions.
   The metadata preservation proof retains physical program IDs through every
   supported instruction and arbitrary successful shared-memory schedules.
+  Structural expression dependencies include masked fallback loads, precision,
+  typed dot accumulation and reshape/reduction operands. A separate named-region
+  write check proves read-only memory preservation under arbitrary successful
+  schedules, including looped stores and discard-result scalar atomic updates.
+  These proofs do not commute atomic destination words or establish a complete
+  concurrent numerical kernel contract.
   These results do not identify different atomic orders, prove native ordinary
   access independence, or cover barriers, async effects and vector atomics.
   [Regressions](tests/lean/FPAtomicCompletion.lean) cover retained nested loops,
