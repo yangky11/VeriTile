@@ -96,6 +96,13 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   [Signed-loop write traces](VeriTile/Triton/Float/SignedLoopWriteTrace.lean)
   concatenate the proved body stream at every actual loop visit. The retained
   atomic regression checks three visits with a negative start and stride four.
+  [Atomic stream filtering](VeriTile/Triton/Float/AtomicWriteStream.lean)
+  preserves each worker's order; [signed visits](VeriTile/Triton/Float/SignedLoopVisits.lean)
+  give the stream's source positions independently of its numeric operands.
+  [Ordered merging](VeriTile/Triton/Float/OrderedStreamMerge.lean) lifts a
+  value history to those positions without an injectivity assumption, retaining
+  every worker's full stream even when operands coincide. The
+  [regression](tests/lean/FPAtomicStreams.lean) checks this equal-value case.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
