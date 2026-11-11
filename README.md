@@ -79,7 +79,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   instrument actual scheduled source statements and reconstruct each final
   memory word by replaying its primitive writes from the actual seed. The
   order-sensitive retained atomic regression also checks this replay. These
-  traces do not yet identify atomic operands with an application graph.
+  [Trace projection](VeriTile/Triton/Float/AtomicInterleavingTraceProjection.lean)
+  proves that each worker’s ordered write operands match an actual complete
+  isolated source execution when protected read regions remain unchanged.
+  Shared atomic old words remain part of the global replay. These traces do
+  not yet identify atomic operands with an application graph.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary

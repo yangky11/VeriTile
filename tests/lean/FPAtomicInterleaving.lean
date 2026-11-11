@@ -1,5 +1,5 @@
 import VeriTile.Triton.Float.AtomicInterleavingCorrect
-import VeriTile.Triton.Float.AtomicInterleavingWriteTrace
+import VeriTile.Triton.Float.AtomicInterleavingTraceProjection
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Meta.StatementAudit
 
@@ -165,6 +165,25 @@ theorem trace_order_is_observable : tracedObservation sequential ≠ tracedObser
   rw [sequential_trace,alternating_trace]
   decide
 
+private theorem jobs_readOnly : ∀ i : Fin jobs.length,
+    readOnlyBody (fun _ => False) jobs[i].kernel.surfaceBody := by
+  have allowed : readOnlyBody (fun _ => False) source.kernel.surfaceBody := by
+    simp [source,ComputeKernel.surfaceBody,readOnlyBody,readOnly,accessOutside]
+  intro ⟨i,inside⟩
+  match i with
+  | 0 => exact allowed
+  | 1 => exact allowed
+  | n+2 => simp [jobs] at inside
+
+/-- Shared atomic old words may differ from isolated execution, while every
+worker's actual sequence of primitive input operands is still preserved. -/
+theorem atomic_operand_streams (before after : State Nat) (executed : Run jobs before after) :
+    ∃ events, runWriteEvents jobs executed.schedule (initial jobs before) = some events ∧
+      ∀ i : Fin jobs.length, ∃ isolated, jobs[i].run before = some isolated ∧
+        ((initial jobs before).locals i).WriteAdvances jobs[i].backend (workerEvents events i) ⟨[],isolated⟩ :=
+  Run.project_trace jobs (fun _ => False) before after executed jobs_readOnly jobs_dependencies
+
+#axiomsClean atomic_operand_streams
 #axiomsClean sequential_trace
 #axiomsClean alternating_trace
 #axiomsClean trace_order_is_observable
