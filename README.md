@@ -62,8 +62,14 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   [Safety transport](VeriTile/Triton/Float/AtomicInterleavingSafeProjection.lean)
   derives safety of every successful shared-memory schedule from the existing
   sequential source trace-safety certificates and those dependencies.
-  It does not assert equality of writable memory, commute atomic destination
-  words or establish a complete concurrent numerical kernel contract.
+  [Per-cell ownership](VeriTile/Triton/Float/AtomicInterleavingPermissionPrefix.lean)
+  additionally proves that each owned final cell matches its owner's isolated
+  source execution, given source trace permissions and exclusive footprints.
+  Ordinary and atomic permissions are distinct; shared atomic destinations
+  need not have an owner. A [retained-source regression](tests/lean/FPCellOwnership.lean)
+  discharges those permissions for workers sharing one output allocation.
+  These results do not commute atomic words or instantiate a complete
+  concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary
   access independence, or cover barriers, async effects and vector atomics.
   [Regressions](tests/lean/FPAtomicCompletion.lean) cover retained nested loops,
