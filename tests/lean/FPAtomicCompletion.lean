@@ -1,4 +1,4 @@
-import VeriTile.Triton.Float.AtomicInterleavingAdmission
+import VeriTile.Triton.Float.AtomicInterleavingMetadata
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Triton.Float.Control
 
@@ -79,6 +79,12 @@ theorem nested_grid_completes {α : Type} [Inhabited α] (jobs : List (Invocatio
     rw [kernels i]
     exact nested_runs jobs[i].backend _
 
+theorem nested_preserves_ids {α : Type} [Inhabited α] (M : Algebra α) (initial : State α) :
+    ∃ final, exec M nested.kernel initial = some final ∧ final.pids = initial.pids := by
+  obtain ⟨final,ran⟩ := nested_runs M initial
+  exact ⟨final,ran,supported_run_pids M _ initial final (checkSupportedBody_sound _ nested_admitted) ran⟩
+
+#axiomsClean nested_preserves_ids
 #axiomsClean nested_admitted
 #axiomsClean vector_atomic_rejected
 #axiomsClean barrier_rejected

@@ -50,6 +50,8 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   ticks. The [admission check](VeriTile/Triton/Float/AtomicInterleavingAdmission.lean)
   proves recursive source support; [completion](VeriTile/Triton/Float/AtomicInterleavingTotal.lean)
   constructs a complete finite tick schedule from successful source executions.
+  The metadata preservation proof retains physical program IDs through every
+  supported instruction and arbitrary successful shared-memory schedules.
   These results do not identify different atomic orders, prove native ordinary
   access independence, or cover barriers, async effects and vector atomics.
   [Regressions](tests/lean/FPAtomicCompletion.lean) cover retained nested loops,
