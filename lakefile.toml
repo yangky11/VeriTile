@@ -116,6 +116,8 @@ globs = [
   "tests.lean.MaskedScatterReadback",
   "tests.lean.StridedLayout",
   "tests.lean.FmaContraction",
+  "tests.lean.FmaChildren",
+  "tests.lean.MemoryEvaluation",
   "tests.lean.GroupedFlip",
   "tests.lean.SignedClamp", "tests.lean.SignedMinimum",
   "tests.lean.IntegralLiteral",
