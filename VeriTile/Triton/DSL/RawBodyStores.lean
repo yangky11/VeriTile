@@ -27,6 +27,10 @@ private partial def rejectRebind (aliases : List Name) (raw : Syntax) : MacroM U
       Macro.throwErrorAt name "pointer alias is rebound under runtime control flow"
   for arg in raw.getArgs do rejectRebind aliases arg
 
+private def rejectIndexAlias (aliases : List Name) (index : Ident) : MacroM Unit := do
+  if aliases.contains index.getId.eraseMacroScopes then
+    Macro.throwErrorAt index "loop index shadows a pointer alias"
+
 /-- Follow pointer bases, including local block pointers, and lower only the
 implicit destination conversion. Unsupported escaping aliases remain untyped
 and are rejected by the caller's complete store-coverage check. -/
@@ -70,9 +74,30 @@ partial def lower (convert : TSyntax `tritonExpr → MacroM (TSyntax `tritonExpr
       let yes := (← lower convert aliases yes.toList).toArray
       stmt ← `(tritonStmt| if $condition:tritonExpr { $yes* })
     | `(tritonStmt| for $index:ident in range($start:tritonExpr, $stop:tritonExpr, $stride:tritonExpr) { $inner:tritonStmt* }) =>
+      rejectIndexAlias aliases index
       for st in inner do rejectRebind aliases st.raw
       let inner := (← lower convert aliases inner.toList).toArray
       stmt ← `(tritonStmt| for $index:ident in range($start:tritonExpr, $stop:tritonExpr, $stride:tritonExpr) { $inner* })
+    | `(tritonStmt| for $index:ident in tl.static_range($count:num) { $inner:tritonStmt* }) =>
+      rejectIndexAlias aliases index
+      for st in inner do rejectRebind aliases st.raw
+      let inner := (← lower convert aliases inner.toList).toArray
+      stmt ← `(tritonStmt| for $index:ident in tl.static_range($count:num) { $inner* })
+    | `(tritonStmt| for $index:ident in tl.static_range($($count:term)) { $inner:tritonStmt* }) =>
+      rejectIndexAlias aliases index
+      for st in inner do rejectRebind aliases st.raw
+      let inner := (← lower convert aliases inner.toList).toArray
+      stmt ← `(tritonStmt| for $index:ident in tl.static_range($($count:term)) { $inner* })
+    | `(tritonStmt| tl.static_range $index:ident in $count:num { $inner:tritonStmt* }) =>
+      rejectIndexAlias aliases index
+      for st in inner do rejectRebind aliases st.raw
+      let inner := (← lower convert aliases inner.toList).toArray
+      stmt ← `(tritonStmt| tl.static_range $index:ident in $count:num { $inner* })
+    | `(tritonStmt| tl.static_range $index:ident in $($count:term) { $inner:tritonStmt* }) =>
+      rejectIndexAlias aliases index
+      for st in inner do rejectRebind aliases st.raw
+      let inner := (← lower convert aliases inner.toList).toArray
+      stmt ← `(tritonStmt| tl.static_range $index:ident in $($count:term) { $inner* })
     | _ =>
       rejectRebind aliases stmt.raw
       if hasStore stmt.raw then Macro.throwErrorAt stmt "unsupported store control flow"

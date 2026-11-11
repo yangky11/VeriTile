@@ -74,6 +74,7 @@ globs = [
   "tests.lean.ConstexprBodyBindings",
   "tests.lean.DynamicBlockPointerLayout",
   "tests.lean.PolymorphicCallStorage",
+  "tests.lean.StaticStoreCasts",
   "tests.lean.SignedSourceRange",
   "tests.lean.FPIntegerConversionNeg",
   "tests.lean.FPFmaSource",
