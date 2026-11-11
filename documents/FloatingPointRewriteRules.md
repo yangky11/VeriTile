@@ -1,5 +1,22 @@
 # 浮点变换规则与接受结果表
 
+## Declared compiler contractions
+
+[`FmaContraction`](../VeriTile/Triton/Float/FmaContraction.lean) is a structural
+compiler-policy relation, **not** an equality of floating-point results or an
+experimental admission to `≡[R]`. The checked edit list preserves precision,
+product operand order, casts, and the multiplicity of numerical leaves.
+Addition remains the default. An edit must explicitly set `combine := .subtract`
+to select `(a*b)-c → fma(a,b,neg(c))` or `c-(a*b) → fma(neg(a),b,c)`.
+Negation is a distinct FP32 unary operation, not subtraction from zero. The
+word interpreter and native compiler contract must supply its interpretation.
+An addition witness continues to reject subtraction, and neither rule crosses
+an intervening cast or accepts a non-FP32 product/combine operation.
+[Regressions](../tests/lean/FmaContraction.lean) check those rejection boundaries,
+path-selected edits under retained stores, and host counterexamples to bitwise
+equality of separate and fused arithmetic. They do not identify the contraction
+chosen by a GPU binary or establish a numerical error bound.
+
 更新日期：2026-10-21。当前目录有 **42 个严格模型实例和 36 个保留实验实例**；183 个任务主声明与 21 个示例 FP 主规格合计实际使用其中 **12 个实验实例**。完整主用清单与条件见[当前规则使用指南](FPRemainingAdmissionGaps.md)。原始 14 条候选关系的 42 个格式检查仍保存在[历史实测结果表](../experiments/floating_point/report/summary.md)。第 3 节保留六个经 Lean 内核检查的严格不等反例；它们否定通用严格相等，不等于 two-gates 拒绝。
 
 这里的“等价性原语”对应可复用的变换规则，只包括固定规模的局部关系，例如结合律、分配律、FMA 与具体 cast 关系。归约重排和完整算法变换是待推导结论，不是准入原子。它与 [浮点执行原语](FloatingPointPrimitives.md) 分开：执行原语定义程序怎样计算，本表记录参考计算如何变成候选计算，以及允许该变换的证据。
