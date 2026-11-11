@@ -97,6 +97,8 @@ syntax "tl.cdiv(" tritonExpr ", " tritonExpr ")" : tritonExpr
 syntax "_div_up(" tritonExpr ", " tritonExpr ")" : tritonExpr
 syntax "min(" tritonExpr ", " tritonExpr ")" : tritonExpr
 syntax "tl.maximum(" tritonExpr ", " tritonExpr ")" : tritonExpr
+syntax "triton_helpers.maximum(" tritonExpr ", " tritonExpr ")" : tritonExpr
+syntax "triton_helpers.minimum(" tritonExpr ", " tritonExpr ")" : tritonExpr
 syntax "tl.minimum(" tritonExpr ", " tritonExpr ")" : tritonExpr
 -- Explicit fused arithmetic remains a compute operation. Initial support is
 -- direct assignment/store RHSs; nested arithmetic must first materialize it.

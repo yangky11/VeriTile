@@ -1588,6 +1588,15 @@ partial def expandExpr (env : Env) (stx : TSyntax `tritonExpr) : MacroM EOut := 
           ensureDType .real b'.dtype "tl.max"
           let (bc, outShape) ← broadcastTerm a'.shape b'.shape "tl.max"
           pure ⟨← `(Op.max2 $bc $a'.term $b'.term), .real, outShape, none, none⟩
+  -- PyTorch's Inductor helpers select original operands, preserving left NaN
+  -- payloads and choosing the right operand on ties. They are not aliases of
+  -- tl.maximum/minimum (which also have different BF16 promotion behavior).
+  -- The redundant self-inequality is false for integer operands; keeping it
+  -- makes the same structural expansion valid for both comparable families.
+  | `(tritonExpr| triton_helpers.maximum($a:tritonExpr, $b:tritonExpr)) => do
+      expandExpr env (← `(tritonExpr| tl.where(tl.logical_or($a > $b, $a != $a), $a, $b)))
+  | `(tritonExpr| triton_helpers.minimum($a:tritonExpr, $b:tritonExpr)) => do
+      expandExpr env (← `(tritonExpr| tl.where(tl.logical_or($a < $b, $a != $a), $a, $b)))
   | `(tritonExpr| tl.maximum($a:tritonExpr, $b:tritonExpr)) => do
       expandMinMax expandExpr env "tl.maximum" (← `(Op.gt)) a b
   | `(tritonExpr| tl.minimum($a:tritonExpr, float ($arg:term))) => do

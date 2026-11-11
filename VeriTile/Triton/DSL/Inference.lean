@@ -726,6 +726,8 @@ private partial def intExprWithPins? (pins : List String) :
   | `(tritonExpr| $a:tritonExpr | $b:tritonExpr)
   | `(tritonExpr| $a:tritonExpr ^ $b:tritonExpr) => intExprWithPins? pins a || intExprWithPins? pins b
   | `(tritonExpr| tl.minimum($a:tritonExpr, $b:tritonExpr))
+  | `(tritonExpr| triton_helpers.maximum($a:tritonExpr, $b:tritonExpr))
+  | `(tritonExpr| triton_helpers.minimum($a:tritonExpr, $b:tritonExpr))
   | `(tritonExpr| tl.maximum($a:tritonExpr, $b:tritonExpr))
   | `(tritonExpr| min($a:tritonExpr, $b:tritonExpr)) =>
       intExprWithPins? pins a || intExprWithPins? pins b

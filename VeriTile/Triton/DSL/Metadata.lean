@@ -170,6 +170,8 @@ private partial def exprRegions (assigned : RegionBindings) :
       exprRegions assigned a ++ exprRegions assigned b
   | `(tritonExpr| tl.max($a:tritonExpr, $b:tritonExpr))   =>
       exprRegions assigned a ++ exprRegions assigned b
+  | `(tritonExpr| triton_helpers.maximum($a:tritonExpr, $b:tritonExpr))
+  | `(tritonExpr| triton_helpers.minimum($a:tritonExpr, $b:tritonExpr))
   | `(tritonExpr| tl.maximum($a:tritonExpr, $b:tritonExpr)) =>
       exprRegions assigned a ++ exprRegions assigned b
   | `(tritonExpr| tl.minimum($a:tritonExpr, $b:tritonExpr)) =>

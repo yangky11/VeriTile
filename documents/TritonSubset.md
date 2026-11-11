@@ -146,12 +146,20 @@ Supported channels:
   width; signed/fixed-width bitwise semantics is deferred to the fixed-width
   integer model.
 - Two-argument `tl.max(a, b)` as pointwise max on `.real`.
-- `tl.maximum(a, b)` and `tl.minimum(a, b)` as pointwise select-based sugar
-  over comparable channels. Branch broadcasting is currently limited to
+- `tl.maximum(a, b)` and `tl.minimum(a, b)` retain floating maximum/minimum
+  primitives (and Triton 3.5.1 BF16-to-FP32 promotion); integer operands use
+  ordered selection. Branch broadcasting is currently limited to
   scalar-to-tile lifting, matching `tl.where`.
   Signed integer operands stay signed through min/max, `tl.multiple_of`,
   `tl.max_contiguous` and row/column broadcast views. Compiler-hint arguments
   do not change the value's signedness.
+- `triton_helpers.maximum(a, b)` and `triton_helpers.minimum(a, b)` expand
+  to ordered comparison, self-inequality and selection. This preserves the
+  left NaN payload and selects the right operand on ties; no ordinary
+  maximum/minimum primitive or forced BF16 promotion is substituted.
+  The expansion follows [PyTorch 2.9.1's helpers](https://github.com/pytorch/pytorch/blob/v2.9.1/torch/_inductor/runtime/triton_helpers.py#L94-L107).
+  [InductorExtrema](../tests/lean/InductorExtrema.lean) checks the actual
+  expression, execution with explicit comparison policies, and BF16 retention.
 - `tl.minimum(a, float("inf"))` retains a distinct `Op.minPosInf` operation.
   The operand must use fp32/fp64 computation; lower-precision operands need
   an explicit cast. The DSL rejects an uncast operand instead of silently
