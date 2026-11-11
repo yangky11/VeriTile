@@ -75,6 +75,11 @@ externally checked. See [Triton subset and gaps](documents/TritonSubset.md).
   connects a selected body visit and later preservation to the completed source
   loop; its [regression](tests/lean/FPSignedLoopReadback.lean) exercises a
   negative start, non-unit stride and overshooting exit.
+  [Write traces](VeriTile/Triton/Float/AtomicInterleavingWriteTrace.lean)
+  instrument actual scheduled source statements and reconstruct each final
+  memory word by replaying its primitive writes from the actual seed. The
+  order-sensitive retained atomic regression also checks this replay. These
+  traces do not yet identify atomic operands with an application graph.
   These results do not commute atomic words or instantiate a complete
   concurrent numerical kernel contract for an arbitrary application.
   These results do not identify different atomic orders, prove native ordinary

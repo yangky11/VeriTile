@@ -1,4 +1,5 @@
 import VeriTile.Triton.Float.AtomicInterleavingCorrect
+import VeriTile.Triton.Float.AtomicInterleavingWriteTrace
 import VeriTile.Triton.DSL.RetainedSource
 import VeriTile.Meta.StatementAudit
 
@@ -124,6 +125,49 @@ theorem order_is_observable : observed sequential ≠ observed alternating := by
   rw [sequential_result,alternating_result]
   decide
 
+private theorem source_dependencies : bodyDependencies (fun _ => False) source.kernel.surfaceBody := by
+  simp only [source,ComputeKernel.surfaceBody,bodyDependencies,readDependencies,accessReads,maskReads,Region.cast]
+  repeat first | trivial | constructor
+
+private theorem jobs_dependencies : ∀ i : Fin jobs.length,
+    bodyDependencies (fun _ => False) jobs[i].kernel.surfaceBody := by
+  intro ⟨i,inside⟩
+  match i with
+  | 0 => exact source_dependencies
+  | 1 => exact source_dependencies
+  | n+2 => simp [jobs] at inside
+
+/-- Replay only the emitted primitive writes, starting from the actual seed. -/
+def tracedObservation (schedule : List (Fin jobs.length)) : Option Nat :=
+  (runWriteEvents jobs schedule (initial jobs starting)).map fun events =>
+    ((events.map Prod.snd).foldl (fun old event => event.atCell "observed" 0 old)
+      (starting.mem "observed" 0)).read .fp32
+
+private theorem traced_result (schedule : List (Fin jobs.length)) (value : Nat)
+    (result : observed schedule = some (value,0,0)) : tracedObservation schedule = some value := by
+  obtain ⟨final,executed,readback⟩ := Option.map_eq_some_iff.mp result
+  obtain ⟨events,generated,memory⟩ := run_write_events jobs (fun _ => False) schedule
+    (initial jobs starting) final (initial_dependencies jobs _ starting jobs_dependencies) executed starting
+  have observedValue : (final.memory "observed" 0).read .fp32 = value := congrArg Prod.fst readback
+  unfold tracedObservation
+  rw [generated]
+  simp only [Option.map_some,Option.some.injEq]
+  rw [← MemoryWrite.applyAll_read]
+  change ((MemoryWrite.applyAll (events.map Prod.snd) { starting with mem := (initial jobs starting).memory }).mem "observed" 0).read .fp32 = value
+  rw [← memory]
+  exact observedValue
+
+theorem sequential_trace : tracedObservation sequential = some 12 := traced_result sequential 12 sequential_result
+
+theorem alternating_trace : tracedObservation alternating = some 21 := traced_result alternating 21 alternating_result
+
+theorem trace_order_is_observable : tracedObservation sequential ≠ tracedObservation alternating := by
+  rw [sequential_trace,alternating_trace]
+  decide
+
+#axiomsClean sequential_trace
+#axiomsClean alternating_trace
+#axiomsClean trace_order_is_observable
 #axiomsClean source_tick
 #axiomsClean sequential_result
 #axiomsClean alternating_result
