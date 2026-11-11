@@ -11,6 +11,10 @@ witness, not a GPU implementation or an experimental rejection. -/
 namespace TypedSumTests
 open VeriTile.Triton FP.Structural
 set_option maxHeartbeats 1000000
+set_option maxRecDepth 32000
+set_option allowUnsafeReducibility true
+attribute [local reducible] FloatDType.toTileDType
+set_option backward.isDefEq.respectTransparency false
 
 def halfSource (M N : Nat) : ComputeKernel := triton {
   x = tl.zeros([$(M), $(N)], dtype=tl.float16)
@@ -169,8 +173,9 @@ theorem flat_and_nested_are_not_implicitly_equal :
 
 theorem erasure_is_real_sum : (typed .fp16).eraseDType =
     Op.reduceSum (shape := [4]) ⟨0, by simp⟩ Bool.false (.full [4] (.const 0)) := by
-  simp only [typed, Op.eraseDType.eq_def]
-  rfl
+  unfold typed
+  rw [Op.eraseDType.eq_def]
+  with_unfolding_all rfl
 
 #guard_msgs (drop info) in
 #auditModuleAxioms

@@ -319,6 +319,14 @@ partial def natDimTerm (ctx : String) (d : TSyntax `tritonExpr) :
   | `(tritonExpr| $i:ident) =>
       let t : TSyntax `term := ⟨i.raw⟩
       `(($t : Nat))
+  | `(tritonExpr| $a:tritonExpr + $b:tritonExpr) => do
+      let aTerm ← natDimTerm ctx a
+      let bTerm ← natDimTerm ctx b
+      `(($aTerm + $bTerm : Nat))
+  | `(tritonExpr| $a:tritonExpr * $b:tritonExpr) => do
+      let aTerm ← natDimTerm ctx a
+      let bTerm ← natDimTerm ctx b
+      `(($aTerm * $bTerm : Nat))
   | `(tritonExpr| $a:tritonExpr // $b:tritonExpr) => do
       let aTerm ← natDimTerm ctx a
       let bTerm ← natDimTerm ctx b

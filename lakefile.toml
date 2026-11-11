@@ -65,6 +65,7 @@ globs = [
   "tests.lean.RawSourceIntegration",
   "tests.lean.RetainedSource",
   "tests.lean.RawTupleAssignment",
+  "tests.lean.RetainedSplit",
   "tests.lean.ConstexprBodyBindings",
   "tests.lean.DynamicBlockPointerLayout",
   "tests.lean.PolymorphicCallStorage",

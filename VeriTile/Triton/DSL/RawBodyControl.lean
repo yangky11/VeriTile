@@ -3,6 +3,9 @@ namespace VeriTile.Triton.DSL.RawBodyControl
 open Lean
 syntax "tl.full(" "(" tritonExpr,* ")" ", " tritonExpr ", " tritonDType ")" : tritonExpr
 syntax "while " tritonExpr " { " tritonStmt* " }" : tritonStmt
+syntax "tl.reshape(" tritonExpr ", " "(" tritonExpr,* ")" ")" : tritonExpr
+syntax "tl.permute(" tritonExpr ", " "(" num,* ")" ")" : tritonExpr
+syntax (name := splitTupleAssignment) ident "," ident "=" "tl.split(" ident ")" : tritonStmt
 syntax (name := independentTupleAssignment) ident "," ident,+ "=" "(" tritonExpr,+,? ")" : tritonStmt
 
 private partial def identifiers (raw : Syntax) : List Name :=
@@ -14,7 +17,18 @@ mutual
   registers. Their source order is retained. Dependent swaps are rejected,
   rather than silently changed into sequential assignments. -/
   partial def expandAssignment (raw : Syntax) : MacroM (Array Syntax) := do
-    if raw.isOfKind ``independentTupleAssignment then
+    if raw.isOfKind ``splitTupleAssignment then
+      let `(tritonStmt| $left:ident, $right:ident = tl.split($source:ident)) := raw
+        | Macro.throwErrorAt raw "invalid split assignment"
+      let names := [left.getId.eraseMacroScopes,right.getId.eraseMacroScopes]
+      unless names.eraseDups.length == 2 do
+        Macro.throwErrorAt raw "split assignment requires distinct targets"
+      if names.contains source.getId.eraseMacroScopes then
+        Macro.throwErrorAt raw "split assignment cannot overwrite its source register"
+      return #[
+        (← `(tritonStmt| $left:ident = tl.split($source:ident, 0))).raw,
+        (← `(tritonStmt| $right:ident = tl.split($source:ident, 1))).raw]
+    else if raw.isOfKind ``independentTupleAssignment then
       let targets := #[raw[0]] ++ raw[2].getSepArgs
       let values := raw[5].getSepArgs
       unless targets.size == values.size do
@@ -62,6 +76,10 @@ private partial def writes (raw : Syntax) : List Name := Id.run do
 partial def normalize (raw : Syntax) : MacroM Syntax := do
   let raw := raw.setArgs (← raw.getArgs.mapM normalize)
   match raw with
+  | `(tritonExpr| tl.reshape($value:tritonExpr, ($dims:tritonExpr,*))) =>
+    return (← `(tritonExpr| tl.reshape($value:tritonExpr, [$dims,*]))).raw
+  | `(tritonExpr| tl.permute($value:tritonExpr, ($axes:num,*))) =>
+    return (← `(tritonExpr| tl.permute($value:tritonExpr, [$axes,*]))).raw
   | `(tritonExpr| tl.full(($dims:tritonExpr,*), $value:tritonExpr, $dtype:tritonDType)) =>
     let value ← if ["tl.uint8","tl.uint16","tl.uint32","tl.uint64"].contains
         (dtype.raw.reprint.getD "").trimAscii.toString then

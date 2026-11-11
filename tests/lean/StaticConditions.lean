@@ -1,5 +1,6 @@
 import VeriTile.Triton.DSL
 import VeriTile.Triton.Float.ProfiledSoundness
+import VeriTile.Triton.Float.ComputeCases
 import VeriTile.Meta.StatementAudit
 
 /-! Correlated constexpr branches must use only the reachable dtype/shape;
@@ -9,6 +10,7 @@ namespace VeriTile.Tests.StaticConditions
 open VeriTile.Triton FP.Structural FP.ProfiledRewrite
 set_option maxHeartbeats 2000000
 set_option maxRecDepth 10000
+set_option backward.isDefEq.respectTransparency false
 
 def repeated (N : Region .nat) (S : RegionName) (flag : Bool) : ComputeKernel := triton {
   if flag {
@@ -76,7 +78,7 @@ def readOffsets (X : RegionName) (I : Region .nat) (offset : Nat)
 
 macro "static_run_simp" : tactic => `(tactic|
   simp [repeated, repeatedLoop, correlatedShape, shadowed, stringRepeated, readOffsets,
-    ComputeKernel.surfaceBody, run, step, FP.Structural.evalExpr, evalComputeOp,
+    ComputeKernel.surfaceBody, run, step, FP.Structural.evalExpr, evalComputeOp_alg, evalComputeOp_full, evalComputeOp_const_fp32, evalComputeOp_load_fp32,
     evalOp_unfold, State.setReg, Cell.read, ofFloat, toFloat, Region.cast,
     engine, Algebra.withDefaultPrecision, resolvePrecision,
     ComputeDType.eraseDType, Option.bind, FP.Structural.numeric,

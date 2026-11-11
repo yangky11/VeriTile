@@ -160,10 +160,14 @@ Supported channels:
   with static `axis=N`. Arg ties return the smallest axis index; sort is
   ascending along the selected axis.
 - Shape/view ops: `tl.reshape`, `tl.view`, `tl.ravel`, `tl.permute`,
-  `tl.flip`, `tl.join`, and projection-form `tl.split(x, 0|1)`. Views are
-  modeled as row-major reshape or typed index remaps. `tl.split` is exposed
-  as two projections because the Lean DSL does not yet have tuple
-  destructuring syntax for `a, b = tl.split(x)`.
+  `tl.flip`, `tl.join`, projection-form `tl.split(x, 0|1)`, and retained
+  `a, b = tl.split(x)` for a pre-existing local tile `x`. Split targets must
+  be distinct and cannot overwrite `x`; the final axis must be literal `2`.
+  Views are modeled as row-major reshape or typed index remaps. Retained
+  reshape dimensions and permutation axes accept tuple or list spelling;
+  reshape dimensions support Nat constexpr addition and multiplication.
+  `Core.ReshapeIndex` proves arbitrary-rank row-major offset preservation,
+  round trips, and grouped-column coordinates without enumerating tiles.
 - Broadcasting is ND and follows the current `Broadcast` witness:
   same dimension, scalar-to-tile, or dimension `1` expanded to the other side.
   The DSL constructs the broadcast proof syntactically, so equivalent but
@@ -535,7 +539,7 @@ current semantic contract.
 | Index/order ops | Limited | `tl.argmax`, `tl.argmin`, `tl.sort` over `.real` or floating-tagged tiles with static `axis=N`; arg ties return the smallest axis index, sort is ascending |
 | Broadcast | Supported | ND same-dim, scalar-to-tile, and dimension-`1` expansion |
 | Shape construction | Limited | `tl.arange`, `tl.full`, `tl.zeros`, rank-1 `[:, None]` / `[None, :]`, literal-axis `tl.expand_dims` |
-| Shape/view ops | Limited | `tl.reshape`, `tl.view`, `tl.ravel`, `tl.permute`, `tl.flip`, `tl.join`, projection-form `tl.split(x, 0|1)` |
+| Shape/view ops | Limited | `tl.reshape`, `tl.view`, `tl.ravel`, `tl.permute`, `tl.flip`, `tl.join`, projection-form `tl.split(x, 0|1)` and retained `a, b = tl.split(x)` with distinct targets and a non-overwritten local source |
 | Transpose | Supported | `tl.trans(e)` swaps trailing two axes; arbitrary static permutations use `tl.permute(e, [axes])` |
 | Matrix multiply | Supported | `tl.dot(a, b)` and accumulator form `tl.dot(a, b, acc)` over mathematical `ℝ` |
 | Bitcast | Limited | 32-bit compute payloads `tl.uint32` / `tl.int32` / `tl.float32`; constant uint32 patterns project to algorithm values, runtime bitcast is expressible but compute-only |

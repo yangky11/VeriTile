@@ -1,10 +1,11 @@
 import VeriTile.Triton.DSL
-import VeriTile.Triton.Float.Structural
+import VeriTile.Triton.Float.ComputeCases
 import VeriTile.Meta.StatementAudit
 
 namespace VeriTile.Tests.FPInterleaveBitcast
 open VeriTile.Triton FP.Structural
 set_option maxHeartbeats 400000
+set_option backward.isDefEq.respectTransparency false
 set_option linter.unusedSimpArgs false
 
 def source (X Y : RegionName) : ComputeKernel := triton {
@@ -32,14 +33,14 @@ theorem signed_bits {α : Type} [Inhabited α] (M : Algebra α)
     evalComputeOp M (.bitcast .int32 .fp32 rfl
       (.alg .int32 (.ref .int shape "raw"))) (s.setReg "raw" .int shape v) =
     some (fun i => M.fp32Bits ⟨BitVec.ofInt 32 (v i)⟩) := by
-  simp [evalComputeOp, evalOp_unfold, State.setReg, ComputeDType.eraseDType]
+  simp [evalComputeOp_alg, evalComputeOp_bitcast_signed, evalComputeOp_bitcast_unsigned, evalOp_unfold, State.setReg, ComputeDType.eraseDType]
 
 theorem unsigned_bits {α : Type} [Inhabited α] (M : Algebra α)
     (s : State α) (shape : TileShape) (v : Values α .nat shape) :
     evalComputeOp M (.bitcast .uint32 .fp32 rfl
       (.alg .uint32 (.ref .nat shape "raw"))) (s.setReg "raw" .nat shape v) =
     some (fun i => M.fp32Bits ⟨BitVec.ofNat 32 (v i)⟩) := by
-  simp [evalComputeOp, evalOp_unfold, State.setReg, ComputeDType.eraseDType]
+  simp [evalComputeOp_alg, evalComputeOp_bitcast_signed, evalComputeOp_bitcast_unsigned, evalOp_unfold, State.setReg, ComputeDType.eraseDType]
 
 theorem split_append (shape : TileShape) (i : TileIndex shape) (side : Fin n) :
     TileShape.splitLastIndex shape (TileShape.appendAxisIndex shape i side) = (i, side) := by
@@ -129,7 +130,7 @@ theorem ordered_payload_execution :
       t.mem "X" 1 = .mk .int (-2147483648) := by
   refine ⟨?t, ?execution, ?outputs⟩
   case execution =>
-    simp [source, ComputeKernel.surfaceBody, run, step, evalExpr, evalComputeOp,
+    simp [source, ComputeKernel.surfaceBody, run, step, evalExpr, evalComputeOp_alg, evalComputeOp_bitcast_signed, evalComputeOp_bitcast_unsigned,
       evalOp_unfold, model, initial, State.setReg, store, natLt]
     rfl
   case outputs => exact ⟨rfl, rfl, rfl, rfl, rfl⟩
