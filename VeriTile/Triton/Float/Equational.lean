@@ -39,6 +39,11 @@ inductive Symbol where
   | dotAcc (precision : Option ComputeDType) (left right out : FloatDType)
       (options : DotOptions) (batch : TileShape) (m k n : Nat)
       (outputIndex : TileIndex (batch ++ [m,n]))
+  /-- Optional whole-tile sum call. This does not replace the explicit schedule
+  model; backends opt into it with `withSumCalls`. -/
+  | reduceSum (precision : Option ComputeDType) (shape : TileShape)
+      (axis : Fin shape.length) (keepDims : Bool)
+      (outputIndex : TileIndex (TileShape.reduceShape shape axis keepDims))
   | reduceMax (precision : Option ComputeDType) (shape : TileShape)
       (axis : Fin shape.length) (keepDims : Bool)
       (outputIndex : TileIndex (TileShape.reduceShape shape axis keepDims))

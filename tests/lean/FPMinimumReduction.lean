@@ -7,6 +7,7 @@ import VeriTile.Meta.StatementAudit
 namespace VeriTile.Tests.FPMinimumReduction
 open VeriTile.Triton FP.Structural
 noncomputable section
+set_option backward.isDefEq.respectTransparency false
 
 def source (input : RegionName) (N : Nat) : ComputeKernel := triton {
   tl.region input = tl.float32

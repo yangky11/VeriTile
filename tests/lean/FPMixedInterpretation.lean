@@ -32,6 +32,20 @@ theorem nested_preserves_arguments (M : Algebra α) (D : DotAccumulator α)
   funext i
   split <;> simp only [Term.evaluate,id_eq]
 
+/-- Every output keeps the entire two-dimensional operand tuple, including
+lanes in the other row; a row-local primitive would not satisfy this statement. -/
+theorem sum_preserves_complete_tile (M : Algebra α) (D : DotAccumulator α)
+    (fallback : Symbol → List α → α) (keepDims : Bool)
+    (values : Values α .real [2,3])
+    (index : TileIndex (TileShape.reduceShape [2,3] ⟨1,by decide⟩ keepDims)) :
+    ((withSumCalls mixedSymbolic).reduceSum (some .fp32) ⟨1,by decide⟩ keepDims
+      (fun i => Term.leaf (values i)) index).evaluate id (mixedCalls M D fallback) =
+      M.reduceSum (some .fp32) ⟨1,by decide⟩ keepDims values index := by
+  simpa only [Term.evaluate,id_eq] using
+    mixed_sum_evaluates M D fallback id mixedSymbolic (some .fp32) [2,3]
+      ⟨1,by decide⟩ keepDims (fun i => Term.leaf (values i)) index
+
+#axiomsClean sum_preserves_complete_tile
 #axiomsClean nested_preserves_arguments
 end
 end FPMixedInterpretationTests

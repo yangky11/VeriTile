@@ -2,7 +2,7 @@ import VeriTile.Triton.Float.MinimumExpression
 import VeriTile.Triton.Float.ReductionInterpretation
 import VeriTile.Triton.Float.AtomicExpression
 
-/-! Compose scalar, full-tile dot, maximum, minimum and ordered atomic
+/-! Compose scalar, full-tile dot, sum, maximum, minimum and ordered atomic
 interpretations. Each label retains its own primitive and exact arguments;
 unhandled symbols still use the supplied fallback. No kernel result is assumed. -/
 namespace VeriTile.Triton.FP.Equational
@@ -34,6 +34,18 @@ theorem mixed_maximum_evaluates (M : Algebra Value) (D : DotAccumulator Value)
   have result := maximum_evaluates M (mixedCalls M D fallback) leaf seededSchedules precision shape dimension keepDims values index
   simpa only [mixedCalls_reduction] using result
 
+/-- Complete sums compose with the same scalar, cast, dot and atomic
+interpretations; the explicit tree backend is still available independently. -/
+theorem mixed_sum_evaluates (M : Algebra Value) (D : DotAccumulator Value)
+    (fallback : Symbol → List Value → Value) (leaf : Atom → Value)
+    (base : Algebra (Term Atom)) (precision : Option ComputeDType)
+    (shape : TileShape) (dimension : Fin shape.length) (keepDims : Bool)
+    (values : Values (Term Atom) .real shape) (index : TileIndex (TileShape.reduceShape shape dimension keepDims)) :
+    ((withSumCalls base).reduceSum precision dimension keepDims values index).evaluate leaf (mixedCalls M D fallback) =
+      M.reduceSum precision dimension keepDims (fun i => (values i).evaluate leaf (mixedCalls M D fallback)) index := by
+  have result := sum_evaluates M (mixedCalls M D fallback) leaf base precision shape dimension keepDims values index
+  simpa only [mixedCalls_reduction] using result
+
 theorem mixed_minimum_evaluates (M : Algebra Value) (D : DotAccumulator Value)
     (fallback : Symbol → List Value → Value) (leaf : Atom → Value)
     (precision : Option ComputeDType) (dtype : FloatDType) (a b : Term Atom)
@@ -52,6 +64,7 @@ theorem mixed_atomic_evaluates (M : Algebra Value) (D : DotAccumulator Value)
   simp only [Term.evaluate,List.map_cons,List.map_nil,mixedCalls,primitiveCalls,dotCalls,scalarCalls,
     reductionCalls,minimumCalls,atomicCalls,available]
 
+#axiomsClean mixed_sum_evaluates
 #axiomsClean mixedCalls_reduction
 #axiomsClean mixed_maximum_evaluates
 #axiomsClean mixed_minimum_evaluates
